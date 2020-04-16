@@ -177,6 +177,7 @@ jobs:
   test:
     <<: *go_build
     steps:
+      - checkout
       - <<: *restore_go_cache
       - <<: *go_mod_download
       - <<: *save_go_cache
