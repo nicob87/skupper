@@ -98,6 +98,7 @@ jobs:
     docker:
       - image: circleci/golang:1.13
     steps:
+      - setup_remote_docker
       - checkout
       - make
       - make:
