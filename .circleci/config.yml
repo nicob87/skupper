@@ -1,5 +1,18 @@
 version: 2.1
-#
+
+commands:
+  make:
+    description: install kind cluster
+    parameters:
+      target:
+          default: ''
+          description: |
+            The Makefile target to run.
+          type: string
+    steps:
+      - run:
+          name: make
+          command: make << parameters.target >>
 
 yaml-templates:
   branch_filters: &branch_filters
@@ -63,6 +76,8 @@ workflows:
           <<: *release_filters
       - test:
           <<: *branch_filters
+      - test_makefile:
+          <<: *branch_filters
 
       - publish-github-release:
           <<: *release_filters
@@ -76,8 +91,24 @@ workflows:
             - build-linux-arm
             - build-linux-arm64
             - test
+            - test_makefile
 
 jobs:
+  test_makefile:
+    docker:
+      - image: circleci/golang:1.13
+    steps:
+      - checkout
+      - make
+      - make:
+          target: docker-build
+      - make:
+          target: deps
+      - make:
+          target: package
+      - make:
+          target: clean
+
   build-linux-amd64: &go_build
     docker:
       - image: circleci/golang:1.13
@@ -147,7 +178,6 @@ jobs:
   test:
     <<: *go_build
     steps:
-      - checkout
       - <<: *restore_go_cache
       - <<: *go_mod_download
       - <<: *save_go_cache
