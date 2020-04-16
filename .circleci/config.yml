@@ -104,8 +104,6 @@ jobs:
       - make:
           target: docker-build
       - make:
-          target: deps
-      - make:
           target: package
       - make:
           target: clean
