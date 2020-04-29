@@ -157,19 +157,19 @@ workflows:
           pre-steps:
             - prepare_for_local_cluster_tests
 
-      - publish-github-release:
-          <<: *release_filters
-          requires:
-            - build-linux-386
-            - build-linux-amd64
-            - build-darwin-386
-            - build-darwin-amd64
-            - build-windows-386
-            - build-windows-amd64
-            - build-linux-arm
-            - build-linux-arm64
-            - test
-            - test_makefile
+      #- publish-github-release:
+          #<<: *release_filters
+          #requires:
+            #- build-linux-386
+            #- build-linux-amd64
+            #- build-darwin-386
+            #- build-darwin-amd64
+            #- build-windows-386
+            #- build-windows-amd64
+            #- build-linux-arm
+            #- build-linux-arm64
+            #- test
+            #- test_makefile
 
 jobs:
   test_makefile:
