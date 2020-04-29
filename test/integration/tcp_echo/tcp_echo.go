@@ -1,12 +1,15 @@
 package tcp_echo
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
 	"strings"
 	"time"
 
+	"github.com/skupperproject/skupper/api/types"
+	"github.com/skupperproject/skupper/client"
 	"github.com/skupperproject/skupper/test/cluster"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -142,7 +145,7 @@ func (r *TcpEchoClusterTestRunner) Setup() {
 	}
 
 	//replace init with??
-	r.Pub1Cluster.SkupperExec("init --cluster-local")
+	//r.Pub1Cluster.SkupperExec("init --cluster-local")
 
 	//r.Pub1Cluster.SkupperExec("expose --port 9090 deployment tcp-go-echo")
 	//r.Pub1Cluster.SkupperExec("connection-token /tmp/public_secret.yaml")
@@ -175,8 +178,27 @@ func (r *TcpEchoClusterTestRunner) TearDown() {
 	r.Priv1Cluster.DeleteNamespace()
 }
 
+func (r *TcpEchoClusterTestRunner) VanTest() {
+
+	var vanRouterCreateOpts types.VanRouterCreateOptions = types.VanRouterCreateOptions{
+		SkupperName:       "nmbname",
+		IsEdge:            false,
+		EnableController:  false,
+		EnableServiceSync: false,
+		EnableConsole:     false,
+		AuthMode:          types.ConsoleAuthModeUnsecured,
+		User:              "nicob?",
+		Password:          "nopasswordd",
+		ClusterLocal:      true,
+		Replicas:          1,
+	}
+	cli, _ := client.NewClient(r.Pub1Cluster.Namespace, "minikube", r.Pub1Cluster.ClusterConfigFile)
+	cli.VanRouterCreate(context.Background(), vanRouterCreateOpts)
+}
+
 func (r *TcpEchoClusterTestRunner) Run() {
 	//defer r.TearDown()
-	r.Setup()
+	//r.Setup()
 	//r.RunTests()
+	r.VanTest()
 }
