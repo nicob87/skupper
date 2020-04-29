@@ -85,7 +85,7 @@ commands:
       - run:
           name: Run Tests
           command: INTEGRATION=true go test -v ./test/integration/tcp_echo
-      - run: kubectl get pods
+      - run: kubectl get pods -n public1
 
 yaml-templates:
   branch_filters: &branch_filters
