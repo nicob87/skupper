@@ -264,7 +264,7 @@ jobs:
           command: go test ./...
 
   minikube_local_cluster_tests:
-    executor: e2e_tets_executor
+    executor: local_cluster_test_executor
     environment: &environment
     steps:
       - minikube-install
