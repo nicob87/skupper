@@ -18,7 +18,8 @@ func TestTcpEcho(t *testing.T) {
 	}
 	testRunners := []cluster.ClusterTestRunnerInterface{&TcpEchoClusterTestRunner{}}
 
-	defaultKubeConfig := filepath.Join(homedir.HomeDir(), "kind.config")
+	//defaultKubeConfig := filepath.Join(homedir.HomeDir(), "kind.config")
+	defaultKubeConfig := filepath.Join(homedir.HomeDir(), ".kube", "config")
 
 	pub1Kubeconfig := flag.String("pub1kubeconfig", defaultKubeConfig, "(optional) absolute path to the kubeconfig file")
 	pub2Kubeconfig := flag.String("pub2kubeconfig", defaultKubeConfig, "(optional) absolute path to the kubeconfig file")
