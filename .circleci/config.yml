@@ -77,7 +77,6 @@ commands:
 
   run_cluster_tests:
     description: run all e2e tests inside the current KUBECONFIG configured cluster
-    #In this step is where we execute shipshape, ginkgo, kubetest or whatever.
     parameters:
       args:
         default: ""
@@ -86,6 +85,7 @@ commands:
       - run:
           name: Run Tests
           command: INTEGRATION=true go test -v ./test/integration/tcp_echo
+      - run: kubectl get pods
 
 yaml-templates:
   branch_filters: &branch_filters
