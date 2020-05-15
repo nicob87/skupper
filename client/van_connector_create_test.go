@@ -3,12 +3,10 @@ package client
 import (
 	"context"
 	"os"
-	"sort"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/skupperproject/skupper/api/types"
 	"gotest.tools/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -31,35 +29,29 @@ func TestConnectorCreateError(t *testing.T) {
 
 func TestConnectorCreateInterior(t *testing.T) {
 	testcases := []struct {
-		doc             string
-		expectedError   string
-		connName        string
-		connFile        string
-		secretsExpected []string
+		doc                string
+		expectedError      string
+		connName           string
+		connFile           string
+		secretExpectedName string
 	}{
 		{
 			doc:           "Expect generated name to be conn1",
 			expectedError: "",
 			//connName:        "connNamemustbedifferent",
-			connName:        "",
-			secretsExpected: []string{"conn1"},
+			connName:           "",
+			secretExpectedName: "conn1",
 		},
 		{
-			doc:             "Expect secret name to be as provided: conn22",
-			expectedError:   "",
-			connName:        "conn22",
-			secretsExpected: []string{"conn22"},
+			doc:                "Expect secret name to be as provided: conn22",
+			expectedError:      "",
+			connName:           "conn2",
+			secretExpectedName: "conn2",
 		},
 	}
 
 	//TODO do a symple loop verifying and asserting no repeated table
 	//connection.
-
-	trans := cmp.Transformer("Sort", func(in []string) []string {
-		out := append([]string(nil), in...)
-		sort.Strings(out)
-		return out
-	})
 
 	testPath := "./tmp/"
 	os.Mkdir(testPath, 0755)
@@ -70,16 +62,15 @@ func TestConnectorCreateInterior(t *testing.T) {
 	cli, err := newMockClient("skupper", "", "")
 	assert.Check(t, err)
 
-	secrets := make(chan *corev1.Secret, 10) //TODO why 10?
+	secrets := make(chan *corev1.Secret)
 
 	informers := informers.NewSharedInformerFactory(cli.KubeClient, 0)
 	secretsInformer := informers.Core().V1().Secrets().Informer()
 	secretsInformer.AddEventHandler(&cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			secret := obj.(*corev1.Secret)
-			t.Logf("secret! added: %s/%s", secret.Namespace, secret.Name)
-			if !strings.HasPrefix(secret.Name, "skupper") { //This condition must be more specific
-				t.Logf("meet condition! \n")
+			t.Logf("secret added: %s/%s", secret.Namespace, secret.Name)
+			if strings.Contains(secret.Name, "conn") {
 				secrets <- secret
 			}
 		},
@@ -103,7 +94,6 @@ func TestConnectorCreateInterior(t *testing.T) {
 
 	for _, c := range testcases {
 
-		secretsFound := []string{}
 		//is it connecting to itself?
 		err = cli.VanConnectorTokenCreate(ctx, c.connName, testPath+c.connName+".yaml")
 		assert.Check(t, err, "Unable to create token")
@@ -116,18 +106,12 @@ func TestConnectorCreateInterior(t *testing.T) {
 
 		select {
 		case secret := <-secrets:
-			t.Logf("Got secret from channel: %s/%s", secret.Namespace, secret.Name)
-			secretsFound = append(secretsFound, secret.Name)
-		case <-time.After(time.Second * 10): //TODO why 10?
+			assert.Equal(t, secret.Name, c.secretExpectedName, c.doc)
+		case <-time.After(time.Second * 5): //TODO this timeout depend on future running on a real cluster
+			//anyway test does not wait for this confition, it is just the error timeout.
 			t.Error("Informer did not get the added secret")
 		}
 
-		assert.Assert(t, cmp.Equal(c.secretsExpected, secretsFound, trans), c.doc)
-
-		secretsFound = []string{} //simple "Tear Down"
 	}
-
-	// clean up
-	//defer this?
 	os.RemoveAll(testPath)
 }
