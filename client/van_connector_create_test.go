@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"sort"
 	"strings"
@@ -68,18 +67,20 @@ func TestConnectorCreateInterior(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	secretsFound := []string{}
-
 	cli, err := newMockClient("skupper", "", "")
 	assert.Check(t, err)
+
+	secrets := make(chan *corev1.Secret, 10) //TODO why 10?
 
 	informers := informers.NewSharedInformerFactory(cli.KubeClient, 0)
 	secretsInformer := informers.Core().V1().Secrets().Informer()
 	secretsInformer.AddEventHandler(&cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			secret := obj.(*corev1.Secret)
-			if !strings.HasPrefix(secret.Name, "skupper") {
-				secretsFound = append(secretsFound, secret.Name)
+			t.Logf("secret! added: %s/%s", secret.Namespace, secret.Name)
+			if !strings.HasPrefix(secret.Name, "skupper") { //This condition must be more specific
+				t.Logf("meet condition! \n")
+				secrets <- secret
 			}
 		},
 	})
@@ -102,6 +103,7 @@ func TestConnectorCreateInterior(t *testing.T) {
 
 	for _, c := range testcases {
 
+		secretsFound := []string{}
 		//is it connecting to itself?
 		err = cli.VanConnectorTokenCreate(ctx, c.connName, testPath+c.connName+".yaml")
 		assert.Check(t, err, "Unable to create token")
@@ -112,9 +114,14 @@ func TestConnectorCreateInterior(t *testing.T) {
 		})
 		assert.Check(t, err, "Unable to create connector")
 
-		// TODO: make more deterministic
-		time.Sleep(time.Second * 1)
-		fmt.Printf("secretsFound= %q", secretsFound)
+		select {
+		case secret := <-secrets:
+			t.Logf("Got secret from channel: %s/%s", secret.Namespace, secret.Name)
+			secretsFound = append(secretsFound, secret.Name)
+		case <-time.After(time.Second * 10): //TODO why 10?
+			t.Error("Informer did not get the added secret")
+		}
+
 		assert.Assert(t, cmp.Equal(c.secretsExpected, secretsFound, trans), c.doc)
 
 		secretsFound = []string{} //simple "Tear Down"
