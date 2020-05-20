@@ -1,8 +1,9 @@
-package client
+package client_test
 
 import (
 	"testing"
 
+	. "github.com/skupperproject/skupper/client"
 	"gotest.tools/assert"
 )
 
@@ -25,7 +26,7 @@ func TestNewClient(t *testing.T) {
 	}
 
 	for _, c := range testcases {
-		_, err := newMockClient(c.namespace, c.context, c.kubeConfigPath)
+		_, err := NewMockClient(c.namespace, c.context, c.kubeConfigPath)
 		assert.Check(t, err, c.doc)
 	}
 }

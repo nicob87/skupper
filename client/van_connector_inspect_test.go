@@ -1,11 +1,13 @@
-package client
+package client_test
 
 import (
 	"context"
-	"github.com/skupperproject/skupper/api/types"
-	"gotest.tools/assert"
 	"os"
 	"testing"
+
+	"github.com/skupperproject/skupper/api/types"
+	. "github.com/skupperproject/skupper/client"
+	"gotest.tools/assert"
 )
 
 func TestConnectorInspectError(t *testing.T) {
@@ -13,7 +15,7 @@ func TestConnectorInspectError(t *testing.T) {
 	defer cancel()
 
 	// Create the client
-	cli, err := newMockClient("skupper", "", "")
+	cli, err := NewMockClient("skupper", "", "")
 
 	_, err = cli.VanConnectorInspect(ctx, "conn1")
 	assert.Error(t, err, `deployments.apps "skupper-router" not found`, "Expect error when VAN is not deployed")
@@ -40,7 +42,7 @@ func TestConnectorInspectNotFound(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cli, err := newMockClient("skupper", "", "")
+	cli, err := NewMockClient("skupper", "", "")
 
 	err = cli.VanRouterCreate(ctx, types.VanRouterCreateOptions{
 		SkupperName:       "skupper",
@@ -86,7 +88,7 @@ func TestConnectorInspectDefaults(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cli, err := newMockClient("skupper", "", "")
+	cli, err := NewMockClient("skupper", "", "")
 
 	testPath := "./tmp/"
 	os.Mkdir(testPath, 0755)

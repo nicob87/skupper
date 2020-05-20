@@ -1,4 +1,4 @@
-package client
+package client_test
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/skupperproject/skupper/api/types"
+	. "github.com/skupperproject/skupper/client"
 	"gotest.tools/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -99,7 +100,7 @@ func TestVanRouterCreateDefaults(t *testing.T) {
 		svcsFound := []string{}
 
 		// Create the client
-		cli, err := newMockClient(c.namespace, "", "")
+		cli, err := NewMockClient(c.namespace, "", "")
 		assert.Check(t, err, c.doc)
 
 		informers := informers.NewSharedInformerFactory(cli.KubeClient, 0)
