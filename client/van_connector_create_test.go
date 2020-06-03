@@ -83,7 +83,6 @@ func testConnectorCreateInterior(t *testing.T, cli *VanClient, ctx context.Conte
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	//cli, err := NewMockClient("skupper", "", "")
 	secrets := make(chan *corev1.Secret, 10) //TODO why 10?
 	informers := informers.NewSharedInformerFactory(cli.KubeClient, 0)
 	secretsInformer := informers.Core().V1().Secrets().Informer()
@@ -102,17 +101,6 @@ func testConnectorCreateInterior(t *testing.T, cli *VanClient, ctx context.Conte
 	informers.Start(ctx.Done())
 	cache.WaitForCacheSync(ctx.Done(), secretsInformer.HasSynced)
 
-	//err := cli.VanRouterCreate(ctx, types.VanRouterCreateOptions{
-	//SkupperName:       "skupper",
-	//IsEdge:            false,
-	//EnableController:  true,
-	//EnableServiceSync: true,
-	//EnableConsole:     false,
-	//AuthMode:          "",
-	//User:              "",
-	//Password:          "",
-	//ClusterLocal:      true,
-	//})
 	err := cli.VanRouterCreate(ctx, types.VanSiteConfig{
 		Spec: types.VanSiteConfigSpec{
 			SkupperName:       "skupper",
