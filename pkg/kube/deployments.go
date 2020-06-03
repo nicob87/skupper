@@ -14,7 +14,7 @@ import (
 	"github.com/skupperproject/skupper/api/types"
 )
 
-func GetOwnerReference(dep *appsv1.Deployment) metav1.OwnerReference {
+func GetDeploymentOwnerReference(dep *appsv1.Deployment) metav1.OwnerReference {
 	return metav1.OwnerReference{
 		APIVersion: "apps/v1",
 		Kind:       "Deployment",
@@ -59,7 +59,7 @@ func NewProxyStatefulSet(serviceInterface types.ServiceInterface, namespace stri
 		return nil, err
 	}
 
-	ownerRef := GetOwnerReference(transportDep)
+	ownerRef := GetDeploymentOwnerReference(transportDep)
 
 	var imageName string
 	if os.Getenv("PROXY_IMAGE") != "" {
@@ -168,7 +168,7 @@ func NewProxyDeployment(serviceInterface types.ServiceInterface, namespace strin
 		return nil, err
 	}
 
-	ownerRef := GetOwnerReference(transportDep)
+	ownerRef := GetDeploymentOwnerReference(transportDep)
 
 	var imageName string
 	if os.Getenv("PROXY_IMAGE") != "" {
@@ -258,7 +258,7 @@ func NewProxyDeployment(serviceInterface types.ServiceInterface, namespace strin
 
 }
 
-func NewControllerDeployment(van *types.VanRouterSpec, ownerRef metav1.OwnerReference, cli kubernetes.Interface) (*appsv1.Deployment, error) {
+func NewControllerDeployment(van *types.VanRouterSpec, ownerRef *metav1.OwnerReference, cli kubernetes.Interface) (*appsv1.Deployment, error) {
 	deployments := cli.AppsV1().Deployments(van.Namespace)
 	existing, err := deployments.Get(types.ControllerDeploymentName, metav1.GetOptions{})
 	if err == nil {
@@ -272,7 +272,6 @@ func NewControllerDeployment(van *types.VanRouterSpec, ownerRef metav1.OwnerRefe
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            types.ControllerDeploymentName,
 				Namespace:       van.Namespace,
-				OwnerReferences: []metav1.OwnerReference{ownerRef},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Replicas: &van.Controller.Replicas,
@@ -290,9 +289,18 @@ func NewControllerDeployment(van *types.VanRouterSpec, ownerRef metav1.OwnerRefe
 				},
 			},
 		}
+		if ownerRef != nil {
+			dep.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*ownerRef}
+		}
+
+		for _, sc := range van.Controller.Sidecars {
+			dep.Spec.Template.Spec.Containers = append(dep.Spec.Template.Spec.Containers, *sc)
+		}
 
 		dep.Spec.Template.Spec.Volumes = van.Controller.Volumes
-		dep.Spec.Template.Spec.Containers[0].VolumeMounts = van.Controller.VolumeMounts
+		for i, _ := range van.Controller.VolumeMounts {
+			dep.Spec.Template.Spec.Containers[i].VolumeMounts = van.Controller.VolumeMounts[i]
+		}
 
 		created, err := deployments.Create(dep)
 		if err != nil {
@@ -307,7 +315,7 @@ func NewControllerDeployment(van *types.VanRouterSpec, ownerRef metav1.OwnerRefe
 	}
 }
 
-func NewTransportDeployment(van *types.VanRouterSpec, cli kubernetes.Interface) (*appsv1.Deployment, error) {
+func NewTransportDeployment(van *types.VanRouterSpec, ownerRef *metav1.OwnerReference, cli kubernetes.Interface) (*appsv1.Deployment, error) {
 	deployments := cli.AppsV1().Deployments(van.Namespace)
 	existing, err := deployments.Get(types.TransportDeploymentName, metav1.GetOptions{})
 	if err == nil {
@@ -340,8 +348,19 @@ func NewTransportDeployment(van *types.VanRouterSpec, cli kubernetes.Interface) 
 			},
 		}
 
+		for _, sc := range van.Transport.Sidecars {
+			dep.Spec.Template.Spec.Containers = append(dep.Spec.Template.Spec.Containers, *sc)
+		}
+
+		if ownerRef != nil {
+			dep.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
+				*ownerRef,
+			}
+		}
 		dep.Spec.Template.Spec.Volumes = van.Transport.Volumes
-		dep.Spec.Template.Spec.Containers[0].VolumeMounts = van.Transport.VolumeMounts
+		for i, _ := range van.Transport.VolumeMounts {
+			dep.Spec.Template.Spec.Containers[i].VolumeMounts = van.Transport.VolumeMounts[i]
+		}
 
 		created, err := deployments.Create(dep)
 		if err != nil {

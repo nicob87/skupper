@@ -5,17 +5,31 @@ type VanConnectorCreateOptions struct {
 	Cost int32
 }
 
-type VanRouterCreateOptions struct {
-	SkupperName       string
-	IsEdge            bool
-	EnableController  bool
-	EnableServiceSync bool
-	EnableConsole     bool
-	AuthMode          string
-	User              string
-	Password          string
-	ClusterLocal      bool
-	Replicas          int32
+type VanSiteConfig struct {
+	Spec             VanSiteConfigSpec
+	Reference        VanSiteConfigReference
+}
+
+type VanSiteConfigSpec struct {
+	SkupperName         string
+	IsEdge              bool
+	EnableController    bool
+	EnableServiceSync   bool
+	EnableRouterConsole bool
+	EnableConsole       bool
+	AuthMode            string
+	User                string
+	Password            string
+	ClusterLocal        bool
+	Replicas            int32
+	SiteControlled      bool
+}
+
+type VanSiteConfigReference struct {
+	UID        string
+	Name       string
+	APIVersion string
+	Kind       string
 }
 
 type VanServiceInterfaceCreateOptions struct {
