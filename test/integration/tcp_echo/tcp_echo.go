@@ -140,7 +140,7 @@ func (r *TcpEchoClusterTestRunner) Setup(ctx context.Context) {
 	}
 
 	vanRouterCreateOpts := types.VanSiteConfig{
-		Spec: types.VanSiteConfigSpec {
+		Spec: types.VanSiteConfigSpec{
 			SkupperName:       "",
 			IsEdge:            false,
 			EnableController:  true,

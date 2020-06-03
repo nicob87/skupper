@@ -3,7 +3,9 @@ package cluster
 import (
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
+	"path"
 	"testing"
 	"time"
 
@@ -28,11 +30,21 @@ type ClusterTestRunnerBase struct {
 	T            *testing.T
 }
 
-func (r *ClusterTestRunnerBase) Build(t *testing.T, public1ConficFile, public2ConficFile, private1ConfigFile, private2ConfigFile string) {
-	r.Pub1Cluster = BuildClusterContext(t, "public1", public1ConficFile)
-	r.Pub2Cluster = BuildClusterContext(t, "public2", public2ConficFile)
-	r.Priv1Cluster = BuildClusterContext(t, "private1", private1ConfigFile)
-	r.Priv2Cluster = BuildClusterContext(t, "private2", private2ConfigFile)
+func (r *ClusterTestRunnerBase) Build(t *testing.T) {
+
+	kubeconfig := os.Getenv("KUBECONFIG")
+	if kubeconfig == "" {
+		homedir, err := os.UserHomeDir()
+		assert.Check(t, err)
+		kubeconfig = path.Join(homedir, ".kube/config")
+	}
+
+	//TODO assign here uniq, publicX and privateX namespaces instead of
+	//generic ones
+	r.Pub1Cluster = BuildClusterContext(t, "public1", kubeconfig)
+	r.Pub2Cluster = BuildClusterContext(t, "public2", kubeconfig)
+	r.Priv1Cluster = BuildClusterContext(t, "private1", kubeconfig)
+	r.Priv2Cluster = BuildClusterContext(t, "private2", kubeconfig)
 	r.T = t
 }
 
