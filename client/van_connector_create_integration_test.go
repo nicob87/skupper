@@ -13,14 +13,12 @@ import (
 )
 
 func run(r *cluster.SimpleClusterTestRunner, ctx context.Context) {
+	testConnectorCreateError(r.T, r.Pub1Cluster.VanClient, ctx)
 	testConnectorCreateInterior(r.T, r.Pub1Cluster.VanClient, ctx)
 }
 
-func TestIntegrationVanConnectorCreateInterior(t *testing.T) {
+func TestIntegrationVanConnectorCreate(t *testing.T) {
 	//all this goes inside the Build!
-	testRunner := &cluster.SimpleClusterTestRunner{}
-	testRunner.Build(t)
-	ctx := context.Background()
-
-	testRunner.Run(ctx, run)
+	testRunner := cluster.NewSimpleClusterTestRunner(t)
+	testRunner.Run(context.Background(), run)
 }
