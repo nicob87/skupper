@@ -1,9 +1,10 @@
-package client_test
+package client
 
 import (
+	"flag"
+	"fmt"
 	"testing"
 
-	. "github.com/skupperproject/skupper/client"
 	"gotest.tools/assert"
 )
 
@@ -26,7 +27,19 @@ func TestNewClient(t *testing.T) {
 	}
 
 	for _, c := range testcases {
-		_, err := NewMockClient(c.namespace, c.context, c.kubeConfigPath)
+		_, err := newMockClient(c.namespace, c.context, c.kubeConfigPath)
 		assert.Check(t, err, c.doc)
 	}
+}
+
+var runOnRealCluster = flag.Bool("use-real-cluster", false, "client package tests will use KUBECONFIG configured cluster")
+
+func getVanClient(short bool, namespace string) (*VanClient, error) {
+
+	if *runOnRealCluster {
+		fmt.Println("Using real Client!")
+		return NewClient(namespace, "", "")
+	}
+	fmt.Println("Using mock client.")
+	return newMockClient(namespace, "", "")
 }

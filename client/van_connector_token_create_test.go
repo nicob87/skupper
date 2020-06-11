@@ -1,4 +1,4 @@
-package client_test
+package client
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/skupperproject/skupper/api/types"
-	. "github.com/skupperproject/skupper/client"
 	"gotest.tools/assert"
 )
 
@@ -14,7 +13,7 @@ func TestConnectorCreateTokenInterior(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cli, err := NewMockClient("skupper", "", "")
+	cli, err := newMockClient("skupper", "", "")
 
 	err = cli.VanRouterCreate(ctx, types.VanSiteConfig{
 		Spec: types.VanSiteConfigSpec {
@@ -41,7 +40,7 @@ func TestConnectorCreateTokenEdge(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cli, err := NewMockClient("skupper", "", "")
+	cli, err := newMockClient("skupper", "", "")
 
 	err = cli.VanRouterCreate(ctx, types.VanSiteConfig{
 		Spec: types.VanSiteConfigSpec {

@@ -1,4 +1,4 @@
-package client_test
+package client
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	. "github.com/skupperproject/skupper/client"
 	"gotest.tools/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
@@ -57,7 +56,7 @@ func TestConnectorRemove(t *testing.T) {
 
 		secretsRemoved := []string{}
 
-		cli, err := NewMockClient("skupper", "", "")
+		cli, err := newMockClient("skupper", "", "")
 
 		informers := informers.NewSharedInformerFactory(cli.KubeClient, 0)
 		secretsInformer := informers.Core().V1().Secrets().Informer()
