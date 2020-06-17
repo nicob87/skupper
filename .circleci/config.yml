@@ -102,38 +102,24 @@ workflows:
   build-workflow:
     jobs:
       - build-linux-amd64
-      - build-darwin-amd64
-      - build-windows-amd64
+      #- build-darwin-amd64
+      #- build-windows-amd64
       - test
       - test_makefile
-      - minikube_local_cluster_tests:
-          pre-steps:
-            - prepare_for_local_cluster_tests
-
-      - build-linux-386:
-          <<: *release_filters
-      - build-darwin-386:
-          <<: *release_filters
-      - build-windows-386:
-          <<: *release_filters
-      - build-linux-arm:
-          <<: *release_filters
-      - build-linux-arm64:
-          <<: *release_filters
-
-      - publish-github-release:
-          <<: *release_filters
+      - push_to_registry:
           requires:
-            - build-linux-386
-            - build-linux-amd64
-            - build-darwin-386
-            - build-darwin-amd64
-            - build-windows-386
-            - build-windows-amd64
-            - build-linux-arm
-            - build-linux-arm64
-            - test
             - test_makefile
+      - remove_from_registry:
+          requires:
+            - push_to_registry
+            - build-linux-amd64
+      #- minikube_local_cluster_tests:
+          #pre-steps:
+            #- prepare_for_local_cluster_tests
+
+
+#SERVICE_CONTROLLER_IMAGE := quay.io/skupper/service-controller
+#SITE_CONTROLLER_IMAGE := quay.io/skupper/site-controller
 
 jobs:
   test_makefile:
@@ -147,6 +133,27 @@ jobs:
       - run: make docker-build
       - run: make package
       - run: make clean
+
+  push_to_registry:
+    executor:
+      name: go/default
+      tag: "1.13"
+    steps:
+      - setup_remote_docker
+      - docker images
+      #- checkout
+      #- run: make push
+
+  remove_from_registry:
+    executor:
+      name: go/default
+      tag: "1.13"
+    steps:
+      #- setup_remote_docker
+      #- docker login
+      #- reg rm quay.io/nicob87/get-started:${CIRCLE_SHA1} || true
+      - run: echo "removing from registryyyyyyyyyyyyyy"
+
 
   build-linux-amd64: &go_build
     executor:
