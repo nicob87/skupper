@@ -76,6 +76,92 @@ $ ./skupper connect my-token.yaml
 Skupper configured to connect to skupper-internal.public:55671 (name=conn1)
 ```
 
+```
+current, err := kube.GetDeployment(types.TransportDeploymentName, options.SkupperNamespace, cli.KubeClient)
+...
+ secret, cli.createConnector(ctx, secret, options, current)
+```
+
+This adds a connector to the deployment resource:
+```
+connector := types.Connector{                                                                                                                   
+Name: options.Name,                                                                                                                     
+Cost: options.Cost,                                                                                                                     
+}                                                                                                                                               
+if mode == types.TransportModeInterior {                                                                                                        
+connector.Host = secret.ObjectMeta.Annotations["inter-router-host"]                                                                     
+connector.Port = secret.ObjectMeta.Annotations["inter-router-port"]                                                                     
+connector.Role = string(types.ConnectorRoleInterRouter)                                                                                 
+} else {                                                                                                                                        
+connector.Host = secret.ObjectMeta.Annotations["edge-host"]                                                                             
+connector.Port = secret.ObjectMeta.Annotations["edge-port"]                                                                             
+connector.Role = string(types.ConnectorRoleEdge)                                                                                        
+}                                                                                                                                               
+qdr.AddConnector(&connector, current)                                                                                                           
+_, err := cli.KubeClient.AppsV1().Deployments(options.SkupperNamespace).Update(current)
+
+```
+
+Basically all this is doing is updating a file pointed by an environment variable (QDROUTERD_CONF) in the "bridge-server" pod, in the skupper-router deployment.
+Then the deployment itself takes care of establishing the connection.
+
+status says not connected for some reason:
+
+```
+[nbrignon@localhost skupper (sk59)]$ skupper status -n public
+Skupper is enabled for namespace '"public"'. It is not connected to any other sites.
+[nbrignon@localhost skupper (sk59)]$ skupper status -n private
+Skupper is enabled for namespace '"private"'. It is not connected to any other sites.
+```
+
+## exposing deployment as service in all connected skupper sites.
+
+First just deploying a simple app that listen and respond on port 9090.
+```
+kubectl apply -f ${HOME}/tcp-echo/public-deployment.yaml
+```
+
+we are creating and exposing the deployment from the public site, and we expect to see the new service also in the private site, it could be done exactly in the other direction, from private to public.
+
+```
+$ skupper expose --port 9090 deployment tcp-go-echo
+```
+all skupper-expose does is updating the "skupper-services" config map which is monitored by the skupper-services-controller. The rest will be done when the controller is informed.
+```
+[nbrignon@localhost skupper (sk59)]$ kubectl get cm skupper-services -o yaml
+apiVersion: v1
+data:
+  tcp-go-echo: '{"address":"tcp-go-echo","protocol":"tcp","port":9090,"targets":[{"selector":"app.kubernetes.io/name=tcp-go-echo-example"}]}'
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2020-06-24T14:56:07Z"
+  managedFields:
+  - apiVersion: v1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:data:
+        .: {}
+        f:tcp-go-echo: {}
+    manager: skupper
+    operation: Update
+    time: "2020-06-24T21:03:10Z"
+  name: skupper-services
+  namespace: public
+  ownerReferences:
+  - apiVersion: v1
+    kind: ConfigMap
+    name: skupper-site
+    uid: 72121dd3-ea02-46f9-bde8-8d5c936709db
+  resourceVersion: "87169"
+  selfLink: /api/v1/namespaces/public/configmaps/skupper-services
+  uid: d5a5571e-e96d-4448-a83e-19006baa0f04
+```
+
+
+
+
+
+
 
 
 
