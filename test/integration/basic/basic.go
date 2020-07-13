@@ -87,8 +87,8 @@ func (r *BasicTestRunner) Setup(ctx context.Context) {
 }
 
 func (r *BasicTestRunner) TearDown(ctx context.Context) {
-	r.Pub1Cluster.DeleteNamespaces()
-	r.Priv1Cluster.DeleteNamespaces()
+	//r.Pub1Cluster.DeleteNamespaces()
+	//r.Priv1Cluster.DeleteNamespaces()
 }
 
 func (r *BasicTestRunner) Run(ctx context.Context) {
