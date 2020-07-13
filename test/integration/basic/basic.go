@@ -16,7 +16,7 @@ type BasicTestRunner struct {
 
 func (r *BasicTestRunner) RunTests(ctx context.Context) {
 
-	timeout := time.After(60 * time.Second)
+	timeout := time.After(120 * time.Second)
 	tick := time.Tick(5 * time.Second)
 	wait_for_conn_from_public := func() {
 		for {
@@ -29,7 +29,7 @@ func (r *BasicTestRunner) RunTests(ctx context.Context) {
 				if err == nil && vir.Status.ConnectedSites.Total == 1 {
 					return
 				} else {
-					log.Println("Service not ready yet, current pods state: ")
+					log.Println("Connection not ready yet, current pods state: ")
 					r.Pub1Cluster.KubectlExec("get pods -o wide")
 				}
 
