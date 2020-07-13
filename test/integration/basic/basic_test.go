@@ -7,10 +7,10 @@ import (
 	"testing"
 )
 
-func TestTcpEcho(t *testing.T) {
-	testRunner := &TcpEchoClusterTestRunner{}
+func TestBasic(t *testing.T) {
+	testRunner := &BasicTestRunner{}
 
-	testRunner.Build(t)
+	testRunner.Build(t, "basic")
 	ctx := context.Background()
 	testRunner.Run(ctx)
 }
