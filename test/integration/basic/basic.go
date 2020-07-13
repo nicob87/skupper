@@ -16,34 +16,28 @@ type BasicTestRunner struct {
 
 func (r *BasicTestRunner) RunTests(ctx context.Context) {
 
-	timeout := time.After(120 * time.Second)
 	tick := time.Tick(5 * time.Second)
-	wait_for_conn_from_public := func() {
+	wait_for_conn := func(cc *cluster.ClusterContext, timeout_S time.Duration) {
+		timeout := time.After(timeout_S * time.Second)
 		for {
 			select {
 			case <-timeout:
 				log.Panicln("Timed Out Waiting for service.")
 				assert.Assert(r.T, false, "Timeout waiting for connection")
 			case <-tick:
-				vir, err := r.Pub1Cluster.VanClient.VanRouterInspect(ctx)
+				vir, err := cc.VanClient.VanRouterInspect(ctx)
 				if err == nil && vir.Status.ConnectedSites.Total == 1 {
+					log.Println("Connection found!!!")
 					return
 				} else {
 					log.Println("Connection not ready yet, current pods state: ")
 					r.Pub1Cluster.KubectlExec("get pods -o wide")
 				}
-
 			}
 		}
 	}
-
-	wait_for_conn_from_public()
-
-	vir, err := r.Priv1Cluster.VanClient.VanRouterInspect(ctx) //todo retry on conflict?
-	assert.Assert(r.T, err)
-
-	assert.Equal(r.T, 1, vir.Status.ConnectedSites.Total)
-
+	wait_for_conn(r.Pub1Cluster, 120)
+	wait_for_conn(r.Priv1Cluster, 30)
 }
 
 func (r *BasicTestRunner) Setup(ctx context.Context) {
