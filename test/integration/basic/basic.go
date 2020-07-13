@@ -2,6 +2,7 @@ package basic
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/skupperproject/skupper/api/types"
@@ -15,14 +16,33 @@ type BasicTestRunner struct {
 
 func (r *BasicTestRunner) RunTests(ctx context.Context) {
 
-	r.Pub1Cluster.KubectlExec("get svc")
-	r.Priv1Cluster.KubectlExec("get svc")
+	timeout := time.After(60 * time.Second)
+	tick := time.Tick(5 * time.Second)
+	wait_for_conn_from_public := func() {
+		for {
+			select {
+			case <-timeout:
+				log.Panicln("Timed Out Waiting for service.")
+				assert.Assert(r.T, false, "Timeout waiting for connection")
+			case <-tick:
+				vir, err := r.Pub1Cluster.VanClient.VanRouterInspect(ctx)
+				if err == nil && vir.Status.ConnectedSites.Total == 1 {
+					return
+				} else {
+					log.Println("Service not ready yet, current pods state: ")
+					r.Pub1Cluster.KubectlExec("get pods -o wide")
+				}
 
-	time.Sleep(20 * time.Second) //TODO XXX What is the right condition to wait for?
-	//error: unable to forward port because pod is not running. Current status=Pending
+			}
+		}
+	}
 
-	r.Pub1Cluster.KubectlExec("get deployments")
-	r.Priv1Cluster.KubectlExec("get deployments")
+	wait_for_conn_from_public()
+
+	vir, err := r.Priv1Cluster.VanClient.VanRouterInspect(ctx) //todo retry on conflict?
+	assert.Assert(r.T, err)
+
+	assert.Equal(r.T, 1, vir.Status.ConnectedSites.Total)
 
 }
 
@@ -67,8 +87,8 @@ func (r *BasicTestRunner) Setup(ctx context.Context) {
 }
 
 func (r *BasicTestRunner) TearDown(ctx context.Context) {
-	r.Pub1Cluster.DeleteNamespace()
-	r.Priv1Cluster.DeleteNamespace()
+	r.Pub1Cluster.DeleteNamespaces()
+	r.Priv1Cluster.DeleteNamespaces()
 }
 
 func (r *BasicTestRunner) Run(ctx context.Context) {
