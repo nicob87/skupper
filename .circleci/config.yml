@@ -3,6 +3,7 @@ orbs:
     docker: circleci/docker@1.0.1
     kube-orb: circleci/kubernetes@0.11.0
     go: circleci/go@1.1.1
+    gotools: gotest/tools@0.0.13
 
 parameters:
   ci_service_controller_image:
@@ -118,6 +119,7 @@ workflows:
   build-workflow:
     jobs:
       - build-all
+      - gotools/lint
       - test
 
       - minikube_local_cluster_tests:
