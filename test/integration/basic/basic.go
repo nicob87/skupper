@@ -40,28 +40,13 @@ func (r *BasicTestRunner) RunTests(ctx context.Context) {
 	wait_for_conn(r.Priv1Cluster, 30)
 }
 
-func (r *BasicTestRunner) Setup(ctx context.Context) {
+func (r *BasicTestRunner) Setup(ctx context.Context, vanRouterCreateOpts types.VanSiteConfig) {
 	var err error
 	err = r.Pub1Cluster.CreateNamespace()
 	assert.Assert(r.T, err)
 
 	err = r.Priv1Cluster.CreateNamespace()
 	assert.Assert(r.T, err)
-
-	vanRouterCreateOpts := types.VanSiteConfig{
-		Spec: types.VanSiteConfigSpec{
-			SkupperName:       "",
-			IsEdge:            false,
-			EnableController:  true,
-			EnableServiceSync: true,
-			EnableConsole:     false,
-			AuthMode:          types.ConsoleAuthModeUnsecured,
-			User:              "nicob?",
-			Password:          "nopasswordd",
-			ClusterLocal:      true,
-			Replicas:          1,
-		},
-	}
 
 	vanRouterCreateOpts.Spec.SkupperNamespace = r.Pub1Cluster.CurrentNamespace
 	r.Pub1Cluster.VanClient.VanRouterCreate(ctx, vanRouterCreateOpts)
@@ -85,9 +70,49 @@ func (r *BasicTestRunner) TearDown(ctx context.Context) {
 	//r.Priv1Cluster.DeleteNamespaces()
 }
 
+//TODO test isEdge condition also (true and false)
 func (r *BasicTestRunner) Run(ctx context.Context) {
+	testcases := []struct {
+		createOpts types.VanSiteConfig
+	}{
+		{
+			createOpts: types.VanSiteConfig{
+				Spec: types.VanSiteConfigSpec{
+					SkupperName:       "",
+					IsEdge:            false,
+					EnableController:  true,
+					EnableServiceSync: true,
+					EnableConsole:     false,
+					AuthMode:          types.ConsoleAuthModeUnsecured,
+					User:              "nicob?",
+					Password:          "nopasswordd",
+					ClusterLocal:      true,
+					Replicas:          1,
+				},
+			},
+		},
+		{
+			createOpts: types.VanSiteConfig{
+				Spec: types.VanSiteConfigSpec{
+					SkupperName:       "",
+					IsEdge:            false,
+					EnableController:  true,
+					EnableServiceSync: true,
+					EnableConsole:     false,
+					AuthMode:          types.ConsoleAuthModeUnsecured,
+					User:              "nicob?",
+					Password:          "nopasswordd",
+					ClusterLocal:      false,
+					Replicas:          1,
+				},
+			},
+		},
+	}
+
 	defer r.TearDown(ctx)
 
-	r.Setup(ctx) //pass the configuration here as argument
-	r.RunTests(ctx)
+	for _, c := range testcases {
+		r.Setup(ctx, c.createOpts)
+		r.RunTests(ctx)
+	}
 }

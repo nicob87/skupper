@@ -11,6 +11,5 @@ func TestBasic(t *testing.T) {
 	testRunner := &BasicTestRunner{}
 
 	testRunner.Build(t, "basic")
-	ctx := context.Background()
-	testRunner.Run(ctx)
+	testRunner.Run(context.Background())
 }
