@@ -66,8 +66,8 @@ func (r *BasicTestRunner) Setup(ctx context.Context, vanRouterCreateOpts types.V
 }
 
 func (r *BasicTestRunner) TearDown(ctx context.Context) {
-	//r.Pub1Cluster.DeleteNamespaces()
-	//r.Priv1Cluster.DeleteNamespaces()
+	r.Pub1Cluster.DeleteNamespaces()
+	r.Priv1Cluster.DeleteNamespaces()
 }
 
 //TODO test isEdge condition also (true and false)
