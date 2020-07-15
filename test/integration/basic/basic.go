@@ -2,7 +2,6 @@ package basic
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/skupperproject/skupper/api/types"
@@ -17,30 +16,29 @@ type BasicTestRunner struct {
 func (r *BasicTestRunner) RunTests(ctx context.Context) {
 
 	tick := time.Tick(5 * time.Second)
-	wait_for_conn := func(cc *cluster.ClusterContext, timeout_S time.Duration) {
-		timeout := time.After(timeout_S * time.Second)
+	wait_for_conn := func(cc *cluster.ClusterContext) {
+		timeout := time.After(120 * time.Second)
 		for {
 			select {
 			case <-timeout:
-				log.Panicln("Timed Out Waiting for service.")
 				assert.Assert(r.T, false, "Timeout waiting for connection")
 			case <-tick:
 				vir, err := cc.VanClient.VanRouterInspect(ctx)
 				if err == nil && vir.Status.ConnectedSites.Total == 1 {
-					log.Println("Connection found!!!")
+					r.T.Logf("Van sites connected!\n")
 					return
 				} else {
-					log.Println("Connection not ready yet, current pods state: ")
+					r.T.Logf("Connection not ready yet, current pods state: \n")
 					r.Pub1Cluster.KubectlExec("get pods -o wide")
 				}
 			}
 		}
 	}
-	wait_for_conn(r.Pub1Cluster, 120)
-	wait_for_conn(r.Priv1Cluster, 30)
+	wait_for_conn(r.Pub1Cluster)
+	wait_for_conn(r.Priv1Cluster)
 }
 
-func (r *BasicTestRunner) Setup(ctx context.Context, vanRouterCreateOpts types.VanSiteConfig) {
+func (r *BasicTestRunner) Setup(ctx context.Context, createOptsPublic types.VanSiteConfig, createOptsPrivate types.VanSiteConfig) {
 	var err error
 	err = r.Pub1Cluster.CreateNamespace()
 	assert.Assert(r.T, err)
@@ -48,14 +46,14 @@ func (r *BasicTestRunner) Setup(ctx context.Context, vanRouterCreateOpts types.V
 	err = r.Priv1Cluster.CreateNamespace()
 	assert.Assert(r.T, err)
 
-	vanRouterCreateOpts.Spec.SkupperNamespace = r.Pub1Cluster.CurrentNamespace
-	r.Pub1Cluster.VanClient.VanRouterCreate(ctx, vanRouterCreateOpts)
+	createOptsPublic.Spec.SkupperNamespace = r.Pub1Cluster.CurrentNamespace
+	r.Pub1Cluster.VanClient.VanRouterCreate(ctx, createOptsPublic)
 
 	err = r.Pub1Cluster.VanClient.VanConnectorTokenCreateFile(ctx, types.DefaultVanName, "/tmp/public_secret.yaml")
 	assert.Assert(r.T, err)
 
-	vanRouterCreateOpts.Spec.SkupperNamespace = r.Priv1Cluster.CurrentNamespace
-	err = r.Priv1Cluster.VanClient.VanRouterCreate(ctx, vanRouterCreateOpts)
+	createOptsPrivate.Spec.SkupperNamespace = r.Priv1Cluster.CurrentNamespace
+	err = r.Priv1Cluster.VanClient.VanRouterCreate(ctx, createOptsPrivate)
 
 	var vanConnectorCreateOpts types.VanConnectorCreateOptions = types.VanConnectorCreateOptions{
 		SkupperNamespace: r.Priv1Cluster.CurrentNamespace,
@@ -70,13 +68,29 @@ func (r *BasicTestRunner) TearDown(ctx context.Context) {
 	r.Priv1Cluster.DeleteNamespaces()
 }
 
-//TODO test isEdge condition also (true and false)
 func (r *BasicTestRunner) Run(ctx context.Context) {
 	testcases := []struct {
-		createOpts types.VanSiteConfig
+		doc               string
+		createOptsPublic  types.VanSiteConfig
+		createOptsPrivate types.VanSiteConfig
 	}{
 		{
-			createOpts: types.VanSiteConfig{
+			doc: "Connecting, two internals, clusterLocal=true",
+			createOptsPublic: types.VanSiteConfig{
+				Spec: types.VanSiteConfigSpec{
+					SkupperName:       "",
+					IsEdge:            false,
+					EnableController:  true,
+					EnableServiceSync: true,
+					EnableConsole:     false,
+					AuthMode:          types.ConsoleAuthModeUnsecured,
+					User:              "nicob?",
+					Password:          "nopasswordd",
+					ClusterLocal:      true,
+					Replicas:          1,
+				},
+			},
+			createOptsPrivate: types.VanSiteConfig{
 				Spec: types.VanSiteConfigSpec{
 					SkupperName:       "",
 					IsEdge:            false,
@@ -92,7 +106,22 @@ func (r *BasicTestRunner) Run(ctx context.Context) {
 			},
 		},
 		{
-			createOpts: types.VanSiteConfig{
+			doc: "Connecting, two internals, clusterLocal=false",
+			createOptsPublic: types.VanSiteConfig{
+				Spec: types.VanSiteConfigSpec{
+					SkupperName:       "",
+					IsEdge:            false,
+					EnableController:  true,
+					EnableServiceSync: true,
+					EnableConsole:     false,
+					AuthMode:          types.ConsoleAuthModeUnsecured,
+					User:              "nicob?",
+					Password:          "nopasswordd",
+					ClusterLocal:      false,
+					Replicas:          1,
+				},
+			},
+			createOptsPrivate: types.VanSiteConfig{
 				Spec: types.VanSiteConfigSpec{
 					SkupperName:       "",
 					IsEdge:            false,
@@ -107,12 +136,44 @@ func (r *BasicTestRunner) Run(ctx context.Context) {
 				},
 			},
 		},
+		{
+			doc: "connecting, Private Edge, Public Internal, clusterLocal=true",
+			createOptsPublic: types.VanSiteConfig{
+				Spec: types.VanSiteConfigSpec{
+					SkupperName:       "",
+					IsEdge:            false,
+					EnableController:  true,
+					EnableServiceSync: true,
+					EnableConsole:     false,
+					AuthMode:          types.ConsoleAuthModeUnsecured,
+					User:              "nicob?",
+					Password:          "nopasswordd",
+					ClusterLocal:      true,
+					Replicas:          1,
+				},
+			},
+			createOptsPrivate: types.VanSiteConfig{
+				Spec: types.VanSiteConfigSpec{
+					SkupperName:       "",
+					IsEdge:            true,
+					EnableController:  true,
+					EnableServiceSync: true,
+					EnableConsole:     false,
+					AuthMode:          types.ConsoleAuthModeUnsecured,
+					User:              "nicob?",
+					Password:          "nopasswordd",
+					ClusterLocal:      true,
+					Replicas:          1,
+				},
+			},
+		},
 	}
 
 	defer r.TearDown(ctx)
 
 	for _, c := range testcases {
-		r.Setup(ctx, c.createOpts)
+		r.T.Logf("Testing: %s\n", c.doc)
+		r.Setup(ctx, c.createOptsPublic, c.createOptsPrivate)
 		r.RunTests(ctx)
 	}
 }
