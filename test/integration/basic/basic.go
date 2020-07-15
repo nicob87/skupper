@@ -2,6 +2,7 @@ package basic
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/skupperproject/skupper/api/types"
@@ -28,7 +29,7 @@ func (r *BasicTestRunner) RunTests(ctx context.Context) {
 					r.T.Logf("Van sites connected!\n")
 					return
 				} else {
-					r.T.Logf("Connection not ready yet, current pods state: \n")
+					fmt.Printf("Connection not ready yet, current pods state: \n")
 					r.Pub1Cluster.KubectlExec("get pods -o wide")
 				}
 			}
