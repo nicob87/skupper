@@ -132,11 +132,11 @@ workflows:
           #requires:
             #- test
 
-      - publish-github-release-artifacts
+      - publish-github-release-artifacts:
           <<: *release_filters
           <<: *release_requires
 
-      - publish-github-release-images
+      - publish-github-release-images:
           <<: *release_filters
           <<: *release_requires
 
