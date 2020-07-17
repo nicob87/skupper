@@ -113,12 +113,18 @@ yaml-templates:
       tags:
         only: /[0-9].*/
 
+  release_requires: &release_requires
+    requires:
+      - build-all
+      - test
+      #- minikube_local_cluster_tests
+
 workflows:
   version: 2.1
   build-workflow:
     jobs:
-      #- build-all
-      #- test
+      - build-all
+      - test
 
       #- minikube_local_cluster_tests:
           #pre-steps:
@@ -126,12 +132,13 @@ workflows:
           #requires:
             #- test
 
-      - publish-github-release
-          #<<: *release_filters
-          #requires:
-            #- build-all
-            #- test
-            #- minikube_local_cluster_tests
+      - publish-github-release-artifacts
+          <<: *release_filters
+          <<: *release_requires
+
+      - publish-github-release-images
+          <<: *release_filters
+          <<: *release_requires
 
       #- remove_from_registry:
           #requires:
@@ -246,27 +253,46 @@ jobs:
       - run: kubectl cluster-info
       - run_cluster_tests
 
-  publish-github-release:
+  publish-github-release-artifacts:
     docker:
       - image: cibuilds/github:0.10
     steps:
-      #- attach_workspace:
-          #at: .
+      - attach_workspace:
+          at: .
       - run:
           name: "Create a Draft Release on GitHub"
           command: |
-            VERSION="${CIRCLE_TAG:-ci-${CIRCLE_BUILD_NUM}}"
-            echo "VERSION = ${VERSION}"
-            echo "CIRCLE_TAG = ${CIRCLE_TAG:-ci-${CIRCLE_BUILD_NUM}}"
-            #BASEDIR=`pwd`
-            #mkdir "${BASEDIR}/archives"
-            #for p in `ls dist` ; do
-              #cd "$BASEDIR/dist/$p"
-              #if [[ $p == windows* ]] ; then
-                #zip -q "${BASEDIR}/archives/skupper-cli-${VERSION}-$p.zip" *
-              #else
-                #tar -zcf "${BASEDIR}/archives/skupper-cli-${VERSION}-$p.tgz" *
-              #fi
-            #done
-            #cd ${BASEDIR}
-            #ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -replace -prerelease -draft ${VERSION} "${BASEDIR}/archives"
+            VERSION="${CIRCLE_TAG}"
+            BASEDIR=`pwd`
+            mkdir "${BASEDIR}/archives"
+            for p in `ls dist` ; do
+              cd "$BASEDIR/dist/$p"
+              if [[ $p == windows* ]] ; then
+                zip -q "${BASEDIR}/archives/skupper-cli-${VERSION}-$p.zip" *
+              else
+                tar -zcf "${BASEDIR}/archives/skupper-cli-${VERSION}-$p.tgz" *
+              fi
+            done
+            cd ${BASEDIR}
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -replace -prerelease -draft ${VERSION} "${BASEDIR}/archives"
+
+  publish-github-release-images:
+    executor:
+      name: go/default
+      tag: "1.13"
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: docker login quay.io -u ${DOCKER_LOGIN} -p ${DOCKER_PASSWORD}
+      - run:
+          name:
+          command: |
+            SERVICE_CONTROLLER_IMAGE=quay.io/nicob87/service-controller:latest
+            SITE_CONTROLLER_IMAGE=quay.io/nicob87/site-controller:latest
+            make -e docker-build
+            make -e docker-push
+
+            SERVICE_CONTROLLER_IMAGE=quay.io/nicob87/service-controller:${CIRCLE_TAG}
+            SITE_CONTROLLER_IMAGE=quay.io/nicob87/site-controller:${CIRCLE_TAG}
+            make -e docker-build
+            make -e docker-push
