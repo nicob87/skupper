@@ -117,26 +117,26 @@ workflows:
   version: 2.1
   build-workflow:
     jobs:
-      - build-all
-      - test
+      #- build-all
+      #- test
 
-      - minikube_local_cluster_tests:
-          pre-steps:
-            - prepare_for_local_cluster_tests
-          requires:
-            - test
+      #- minikube_local_cluster_tests:
+          #pre-steps:
+            #- prepare_for_local_cluster_tests
+          #requires:
+            #- test
 
-      - publish-github-release:
-          <<: *release_filters
-          requires:
-            - build-all
-            - test
-            - minikube_local_cluster_tests
+      - publish-github-release
+          #<<: *release_filters
+          #requires:
+            #- build-all
+            #- test
+            #- minikube_local_cluster_tests
 
-      - remove_from_registry:
-          requires:
-            - test
-            - minikube_local_cluster_tests
+      #- remove_from_registry:
+          #requires:
+            #- test
+            #- minikube_local_cluster_tests
 
 jobs:
   test:
@@ -250,21 +250,23 @@ jobs:
     docker:
       - image: cibuilds/github:0.10
     steps:
-      - attach_workspace:
-          at: .
+      #- attach_workspace:
+          #at: .
       - run:
           name: "Create a Draft Release on GitHub"
           command: |
             VERSION="$CIRCLE_TAG"
-            BASEDIR=`pwd`
-            mkdir "${BASEDIR}/archives"
-            for p in `ls dist` ; do
-              cd "$BASEDIR/dist/$p"
-              if [[ $p == windows* ]] ; then
-                zip -q "${BASEDIR}/archives/skupper-cli-${VERSION}-$p.zip" *
-              else
-                tar -zcf "${BASEDIR}/archives/skupper-cli-${VERSION}-$p.tgz" *
-              fi
-            done
-            cd ${BASEDIR}
-            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -replace -prerelease -draft ${VERSION} "${BASEDIR}/archives"
+            echo "VERSION = ${VERSION}"
+            echo "CIRCLE_TAG = ${CIRCLE_TAG}"
+            #BASEDIR=`pwd`
+            #mkdir "${BASEDIR}/archives"
+            #for p in `ls dist` ; do
+              #cd "$BASEDIR/dist/$p"
+              #if [[ $p == windows* ]] ; then
+                #zip -q "${BASEDIR}/archives/skupper-cli-${VERSION}-$p.zip" *
+              #else
+                #tar -zcf "${BASEDIR}/archives/skupper-cli-${VERSION}-$p.tgz" *
+              #fi
+            #done
+            #cd ${BASEDIR}
+            #ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -replace -prerelease -draft ${VERSION} "${BASEDIR}/archives"
