@@ -255,9 +255,9 @@ jobs:
       - run:
           name: "Create a Draft Release on GitHub"
           command: |
-            VERSION="$CIRCLE_TAG"
+            VERSION="${CIRCLE_TAG:-ci-${CIRCLE_BUILD_NUM}}"
             echo "VERSION = ${VERSION}"
-            echo "CIRCLE_TAG = ${CIRCLE_TAG}"
+            echo "CIRCLE_TAG = ${CIRCLE_TAG:-ci-${CIRCLE_BUILD_NUM}}"
             #BASEDIR=`pwd`
             #mkdir "${BASEDIR}/archives"
             #for p in `ls dist` ; do
