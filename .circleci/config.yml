@@ -272,6 +272,10 @@ jobs:
           command: |
             VERSION="${CIRCLE_TAG}"
             BASEDIR=`pwd`
+            echo "circle_tag = ${CIRCLE_TAG}"
+            echo "version = ${VERSION}"
+            echo "basedir = ${BASEDIR}"
+            echo "github_token = ${GITHUB_TOKEN}"
             mkdir "${BASEDIR}/archives"
             for p in `ls dist` ; do
               cd "$BASEDIR/dist/$p"
@@ -295,8 +299,8 @@ jobs:
       - run:
           name:
           command: |
-            echo 'export SERVICE_CONTROLLER_IMAGE=quay.io/nicob87/service-controller:${CIRCLE_TAG} >>' >> $BASH_ENV
-            echo 'export SITE_CONTROLLER_IMAGE=quay.io/nicob87/site-controller:${CIRCLE_TAG} >>' >> $BASH_ENV
+            echo 'export SERVICE_CONTROLLER_IMAGE=quay.io/nicob87/service-controller:${CIRCLE_TAG}' >> $BASH_ENV
+            echo 'export SITE_CONTROLLER_IMAGE=quay.io/nicob87/site-controller:${CIRCLE_TAG}' >> $BASH_ENV
             source $BASH_ENV
             make -e docker-build
             make -e docker-push
