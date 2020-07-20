@@ -106,12 +106,17 @@ commands:
             ./cmd/skupper
 
 yaml-templates:
-  release_filters: &release_filters
+  branch_filters: &run_for_all_branches_and_v_prefixed_tags
+    filters:
+      tags:
+        only: /^v.*/
+
+  release_filters: &run_for_v_prefixed_tags
     filters:
       branches:
         ignore: /.*/
       tags:
-        only: /[0-9].*/
+        only: /^v.*/
 
   release_requires: &release_requires
     requires:
@@ -123,8 +128,10 @@ workflows:
   version: 2.1
   build-workflow:
     jobs:
-      - build-all
-      - test
+      - build-all:
+          <<: *run_for_all_branches_and_v_prefixed_tags
+      - test:
+          <<: *run_for_all_branches_and_v_prefixed_tags
 
       #- minikube_local_cluster_tests:
           #pre-steps:
@@ -133,14 +140,14 @@ workflows:
             #- test
 
       - publish-github-release-artifacts:
-          <<: *release_filters
+          <<: *run_for_v_prefixed_tags
           <<: *release_requires
 
       - publish-github-release-images:
-          <<: *release_filters
+          <<: *run_for_v_prefixed_tags
           <<: *release_requires
 
-      #- remove_from_registry:
+      #- remove_from_registry: #only branch
           #requires:
             #- test
             #- minikube_local_cluster_tests
