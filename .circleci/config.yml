@@ -295,7 +295,8 @@ jobs:
       - run:
           name:
           command: |
-            SERVICE_CONTROLLER_IMAGE=quay.io/nicob87/service-controller:${CIRCLE_TAG}
-            SITE_CONTROLLER_IMAGE=quay.io/nicob87/site-controller:${CIRCLE_TAG}
+            echo 'export SERVICE_CONTROLLER_IMAGE=quay.io/nicob87/service-controller:${CIRCLE_TAG} >>' >> $BASH_ENV
+            echo 'export SITE_CONTROLLER_IMAGE=quay.io/nicob87/site-controller:${CIRCLE_TAG} >>' >> $BASH_ENV
+            source $BASH_ENV
             make -e docker-build
             make -e docker-push
