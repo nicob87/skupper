@@ -1,0 +1,151 @@
+package http
+
+import (
+	"context"
+	"fmt"
+	"os/exec"
+	"time"
+
+	"github.com/skupperproject/skupper/api/types"
+	"github.com/skupperproject/skupper/test/cluster"
+	"gotest.tools/assert"
+
+	appsv1 "k8s.io/api/apps/v1"
+	apiv1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+type HttpClusterTestRunner struct {
+	cluster.ClusterTestRunnerBase
+}
+
+func int32Ptr(i int32) *int32 { return &i }
+
+const minute time.Duration = 60
+
+var httpbinDep *appsv1.Deployment = &appsv1.Deployment{
+	TypeMeta: metav1.TypeMeta{
+		APIVersion: "apps/v1",
+		Kind:       "Deployment",
+	},
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "httpbin",
+	},
+	Spec: appsv1.DeploymentSpec{
+		Replicas: int32Ptr(1),
+		Selector: &metav1.LabelSelector{
+			MatchLabels: map[string]string{"application": "httpbin"},
+		},
+		Template: apiv1.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"application": "httpbin",
+				},
+			},
+			Spec: apiv1.PodSpec{
+				Containers: []apiv1.Container{
+					{
+						Name:            "httpbin",
+						Image:           "docker.io/kennethreitz/httpbin",
+						ImagePullPolicy: apiv1.PullIfNotPresent,
+						Ports: []apiv1.ContainerPort{
+							{
+								Name:          "http",
+								Protocol:      apiv1.ProtocolTCP,
+								ContainerPort: 80,
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+}
+
+func sendReceive(servAddr string) {
+	return
+}
+
+func forwardSendReceive(cc *cluster.ClusterContext, port string) {
+	cc.KubectlExecAsync(fmt.Sprintf("port-forward service/tcp-go-echo %s:9090", port))
+
+	defer exec.Command("pkill", "kubectl").Run() //XXX the forwarding needs to be redesigned, this is an ugly patch
+
+	time.Sleep(60 * time.Second) //give time to port forwarding to start
+
+	sendReceive("127.0.0.1:" + port)
+}
+
+func (r *HttpClusterTestRunner) RunTests(ctx context.Context) {
+	return
+}
+
+func (r *HttpClusterTestRunner) Setup(ctx context.Context) {
+	var err error
+	err = r.Pub1Cluster.CreateNamespace()
+	assert.Assert(r.T, err)
+
+	err = r.Priv1Cluster.CreateNamespace()
+	assert.Assert(r.T, err)
+
+	privateDeploymentsClient := r.Priv1Cluster.VanClient.KubeClient.AppsV1().Deployments(r.Priv1Cluster.CurrentNamespace)
+
+	fmt.Println("Creating deployment...")
+	result, err := privateDeploymentsClient.Create(httpbinDep)
+	assert.Assert(r.T, err)
+
+	fmt.Printf("Created deployment %q.\n", result.GetObjectMeta().GetName())
+
+	vanRouterCreateOpts := types.VanSiteConfig{
+		Spec: types.VanSiteConfigSpec{
+			SkupperName:       "",
+			IsEdge:            false,
+			EnableController:  true,
+			EnableServiceSync: true,
+			EnableConsole:     false,
+			AuthMode:          types.ConsoleAuthModeUnsecured,
+			User:              "nicob?",
+			Password:          "nopasswordd",
+			ClusterLocal:      false,
+			Replicas:          1,
+		},
+	}
+
+	vanRouterCreateOpts.Spec.SkupperNamespace = r.Priv1Cluster.CurrentNamespace
+	r.Priv1Cluster.VanClient.VanRouterCreate(ctx, vanRouterCreateOpts)
+
+	service := types.ServiceInterface{
+		Address:  "httpbin",
+		Protocol: "http",
+		Port:     80, //80 is the target pod port, is this correct?
+	}
+	err = r.Priv1Cluster.VanClient.VanServiceInterfaceCreate(ctx, &service)
+	assert.Assert(r.T, err)
+
+	err = r.Priv1Cluster.VanClient.VanServiceInterfaceBind(ctx, &service, "deployment", "httpbin", "http", 0)
+	assert.Assert(r.T, err)
+
+	vanRouterCreateOpts.Spec.SkupperNamespace = r.Pub1Cluster.CurrentNamespace
+	err = r.Pub1Cluster.VanClient.VanRouterCreate(ctx, vanRouterCreateOpts)
+
+	err = r.Pub1Cluster.VanClient.VanConnectorTokenCreateFile(ctx, types.DefaultVanName, "/tmp/public_secret.yaml")
+	assert.Assert(r.T, err)
+
+	var vanConnectorCreateOpts types.VanConnectorCreateOptions = types.VanConnectorCreateOptions{
+		SkupperNamespace: r.Priv1Cluster.CurrentNamespace,
+		Name:             "",
+		Cost:             0,
+	}
+	r.Priv1Cluster.VanClient.VanConnectorCreateFromFile(ctx, "/tmp/public_secret.yaml", vanConnectorCreateOpts)
+}
+
+func (r *HttpClusterTestRunner) TearDown(ctx context.Context) {
+	r.Pub1Cluster.DeleteNamespace()
+	r.Priv1Cluster.DeleteNamespace()
+}
+
+func (r *HttpClusterTestRunner) Run(ctx context.Context) {
+	//defer r.TearDown(ctx)
+	r.Setup(ctx)
+	//r.RunTests(ctx)
+}
