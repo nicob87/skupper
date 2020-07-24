@@ -10,7 +10,7 @@ import (
 func TestHttp(t *testing.T) {
 	testRunner := &HttpClusterTestRunner{}
 
-	testRunner.Build(t, "tcp-echo")
+	testRunner.Build(t, "http")
 	ctx := context.Background()
 	testRunner.Run(ctx)
 }
