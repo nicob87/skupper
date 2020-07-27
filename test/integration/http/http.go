@@ -69,17 +69,13 @@ func sendReceive(servAddr string) {
 	return
 }
 
-func forwardSendReceive(cc *cluster.ClusterContext, port string) {
-	cc.KubectlExecAsync(fmt.Sprintf("port-forward service/tcp-go-echo %s:9090", port))
-
-	defer exec.Command("pkill", "kubectl").Run() //XXX the forwarding needs to be redesigned, this is an ugly patch
-
-	time.Sleep(60 * time.Second) //give time to port forwarding to start
-
-	sendReceive("127.0.0.1:" + port)
-}
-
 func (r *HttpClusterTestRunner) RunTests(ctx context.Context) {
+	//TODO https://github.com/skupperproject/skupper/issues/95
+	//all this hardcoded sleeps must be fixed, probably along with #95
+	//for now I am just keeping them in the same values that we are using
+	//for tcp_echo test, since in case of reducing test may fail
+	//intermitently
+
 	r.Pub1Cluster.GetService("httpbin", 3*minute)
 	time.Sleep(20 * time.Second) //TODO XXX What is the right condition to wait for?
 
@@ -87,6 +83,8 @@ func (r *HttpClusterTestRunner) RunTests(ctx context.Context) {
 	defer exec.Command("pkill", "kubectl").Run()
 	time.Sleep(60 * time.Second) //give time to port forwarding to start
 
+	// The test we are doing here is the most basic one, TODO add more
+	// testing, asserts, etc.
 	rate := vegeta.Rate{Freq: 100, Per: time.Second}
 	duration := 4 * time.Second
 	targeter := vegeta.NewStaticTargeter(vegeta.Target{
