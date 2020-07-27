@@ -13,6 +13,9 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/davecgh/go-spew/spew"
+	vegeta "github.com/tsenart/vegeta/v12/lib"
 )
 
 type HttpClusterTestRunner struct {
@@ -77,7 +80,31 @@ func forwardSendReceive(cc *cluster.ClusterContext, port string) {
 }
 
 func (r *HttpClusterTestRunner) RunTests(ctx context.Context) {
-	return
+	r.Pub1Cluster.GetService("httpbin", 3*minute)
+	time.Sleep(20 * time.Second) //TODO XXX What is the right condition to wait for?
+
+	r.Pub1Cluster.KubectlExecAsync(fmt.Sprintf("port-forward service/httpbin 8080:80"))
+	defer exec.Command("pkill", "kubectl").Run()
+	time.Sleep(60 * time.Second) //give time to port forwarding to start
+
+	rate := vegeta.Rate{Freq: 100, Per: time.Second}
+	duration := 4 * time.Second
+	targeter := vegeta.NewStaticTargeter(vegeta.Target{
+		Method: "GET",
+		URL:    "http://localhost:8080/",
+	})
+	attacker := vegeta.NewAttacker()
+
+	var metrics vegeta.Metrics
+	for res := range attacker.Attack(targeter, rate, duration, "Big Bang!") {
+		metrics.Add(res)
+	}
+	metrics.Close()
+
+	spew.Dump(metrics)
+
+	// Success is the percentage of non-error responses.
+	assert.Assert(r.T, metrics.Success > 0.95, "too many errors! see the log for details.")
 }
 
 func (r *HttpClusterTestRunner) Setup(ctx context.Context) {
@@ -117,7 +144,7 @@ func (r *HttpClusterTestRunner) Setup(ctx context.Context) {
 	service := types.ServiceInterface{
 		Address:  "httpbin",
 		Protocol: "http",
-		Port:     80, //80 is the target pod port, is this correct?
+		Port:     80,
 	}
 	err = r.Priv1Cluster.VanClient.VanServiceInterfaceCreate(ctx, &service)
 	assert.Assert(r.T, err)
@@ -145,7 +172,7 @@ func (r *HttpClusterTestRunner) TearDown(ctx context.Context) {
 }
 
 func (r *HttpClusterTestRunner) Run(ctx context.Context) {
-	//defer r.TearDown(ctx)
+	defer r.TearDown(ctx)
 	r.Setup(ctx)
-	//r.RunTests(ctx)
+	r.RunTests(ctx)
 }
