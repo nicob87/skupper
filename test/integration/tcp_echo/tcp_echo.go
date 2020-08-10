@@ -22,8 +22,6 @@ type TcpEchoClusterTestRunner struct {
 
 func int32Ptr(i int32) *int32 { return &i }
 
-const minute time.Duration = 60
-
 var deployment *appsv1.Deployment = &appsv1.Deployment{
 	TypeMeta: metav1.TypeMeta{
 		APIVersion: "apps/v1",
@@ -66,8 +64,8 @@ var deployment *appsv1.Deployment = &appsv1.Deployment{
 func (r *TcpEchoClusterTestRunner) RunTests(ctx context.Context) {
 
 	//XXX
-	r.Pub1Cluster.GetService("tcp-go-echo", 10*minute)
-	r.Priv1Cluster.GetService("tcp-go-echo", 10*minute)
+	r.Pub1Cluster.GetService("tcp-go-echo", 10*time.Minute)
+	r.Priv1Cluster.GetService("tcp-go-echo", 10*time.Minute)
 	time.Sleep(60 * time.Second) //TODO What is the right condition to wait for?
 
 	jobName := "tcp-echo"
@@ -93,11 +91,11 @@ func (r *TcpEchoClusterTestRunner) RunTests(ctx context.Context) {
 		//assert.Equal(r.T, int(job.Status.Failed), 0)
 	}
 
-	job, err := r.Pub1Cluster.WaitForJob(jobName, 5*minute)
+	job, err := r.Pub1Cluster.WaitForJob(jobName, 10*time.Minute)
 	assert.Assert(r.T, err)
 	assertJob(job)
 
-	job, err = r.Priv1Cluster.WaitForJob(jobName, 5*minute)
+	job, err = r.Priv1Cluster.WaitForJob(jobName, 10*time.Minute)
 	assert.Assert(r.T, err)
 	assertJob(job)
 }
