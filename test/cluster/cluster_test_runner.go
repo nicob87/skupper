@@ -229,13 +229,13 @@ func (cc *ClusterContext) CreateTestJob(name string, command []string) (*batchv1
 				Spec: apiv1.PodSpec{
 					Containers: []apiv1.Container{
 						{
-							Name:    name,
-							Image:   testImage,
-							Command: command,
+							Name:            name,
+							Image:           testImage,
+							ImagePullPolicy: apiv1.PullAlways,
+							Command:         command,
 							Env: []apiv1.EnvVar{
 								{Name: "JOB", Value: name},
 							},
-							ImagePullPolicy: apiv1.PullIfNotPresent,
 						},
 					},
 					RestartPolicy: apiv1.RestartPolicyNever,
