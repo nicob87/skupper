@@ -237,9 +237,9 @@ func AssertJob(t *testing.T, job *batchv1.Job) {
 	assert.Equal(t, int(job.Status.Succeeded), 1)
 	assert.Equal(t, int(job.Status.Active), 0)
 
-	//Now that we are using a
-	//backoff limit grater than 1, evaluate what to assert here
-	//assert.Equal(r.T, int(job.Status.Failed), 0)
+	if job.Status.Failed > 0 {
+		t.Logf("WARNING! THIS JOB NEEDED RETRIES TO SUCCEED! Job.Status.Failed = %d\n", job.Status.Failed)
+	}
 }
 
 func SkipTestJobIfMustBeSkipped(t *testing.T) {
