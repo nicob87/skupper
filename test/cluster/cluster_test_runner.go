@@ -254,7 +254,7 @@ func (cc *ClusterContext) CreateTestJob(name string, command []string) (*batchv1
 
 //TODO evaluate modifying this implementation to use informers instead of
 //pooling.
-func (cc *ClusterContext) WaitForJob(jobName string, timeout_S time.Duration) (*batchv1.Job, error) {
+func (cc *ClusterContext) WaitForJob(jobName string, timeout time.Duration) (*batchv1.Job, error) {
 
 	jobsClient := cc.VanClient.KubeClient.BatchV1().Jobs(cc.CurrentNamespace)
 
@@ -262,7 +262,7 @@ func (cc *ClusterContext) WaitForJob(jobName string, timeout_S time.Duration) (*
 
 	for {
 		select {
-		case <-time.After(timeout_S * time.Second):
+		case <-time.After(timeout):
 			return nil, fmt.Errorf("Timeout: Job is still active")
 		case <-time.Tick(5 * time.Second):
 			job, _ := jobsClient.Get(jobName, metav1.GetOptions{})
