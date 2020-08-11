@@ -272,6 +272,7 @@ func (cc *ClusterContext) WaitForJob(jobName string, timeout time.Duration) (*ba
 			job, _ := jobsClient.Get(jobName, metav1.GetOptions{})
 
 			cc.KubectlExec(fmt.Sprintf("get job/%s -o wide", jobName))
+			cc.KubectlExec("get pods -o wide")
 
 			if job.Status.Active > 0 {
 				fmt.Println("Job is still active")
