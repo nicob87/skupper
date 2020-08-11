@@ -64,9 +64,14 @@ var deployment *appsv1.Deployment = &appsv1.Deployment{
 func (r *TcpEchoClusterTestRunner) RunTests(ctx context.Context) {
 
 	//XXX
-	r.Pub1Cluster.GetService("tcp-go-echo", 10*time.Minute)
-	r.Priv1Cluster.GetService("tcp-go-echo", 10*time.Minute)
-	time.Sleep(60 * time.Second) //TODO What is the right condition to wait for?
+	start := time.Now()
+	timeout := 10 * time.Minute
+
+	_, err := r.Pub1Cluster.WaitForSkupperServiceToBeCreatedAndReadyToUse("tcp-go-echo", timeout)
+	assert.Assert(r.T, err)
+
+	_, err = r.Priv1Cluster.WaitForSkupperServiceToBeCreatedAndReadyToUse("tcp-go-echo", timeout-time.Since(start))
+	assert.Assert(r.T, err)
 
 	jobName := "tcp-echo"
 	jobCmd := []string{"/app/tcp_echo_test", "-test.run", "Job"}
@@ -78,7 +83,7 @@ func (r *TcpEchoClusterTestRunner) RunTests(ctx context.Context) {
 	//TODO the pattern: create Job or jobs, wait for termination, and assert
 	//success probably will be moved to common cluster_test_runner.go
 	//source.
-	_, err := r.Pub1Cluster.CreateTestJob(jobName, jobCmd)
+	_, err = r.Pub1Cluster.CreateTestJob(jobName, jobCmd)
 	assert.Assert(r.T, err)
 
 	_, err = r.Priv1Cluster.CreateTestJob(jobName, jobCmd)

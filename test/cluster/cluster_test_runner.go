@@ -19,6 +19,13 @@ import (
 	vanClient "github.com/skupperproject/skupper/client"
 )
 
+const (
+	//until this issue: https://github.com/skupperproject/skupper/issues/163
+	//is fixed, this is the best we can do
+	SkupperServiceReadyPeriod time.Duration = time.Minute
+	DefaultTick                             = time.Second * 5
+)
+
 type ClusterTestRunnerInterface interface {
 	Build(t *testing.T, ns_suffix string) //is this interface used?
 	Run()
@@ -152,22 +159,41 @@ func (cc *ClusterContext) DeleteNamespace() {
 	cc.DeleteNamespaces()
 }
 
-func (cc *ClusterContext) GetService(name string, timeout_S time.Duration) *apiv1.Service {
-	timeout := time.After(timeout_S * time.Second)
-	tick := time.Tick(3 * time.Second)
+func (cc *ClusterContext) GetService(name string, timeout time.Duration) (*apiv1.Service, error) {
+	guardTime := 500 * time.Millisecond
+
+	getService := func() (*apiv1.Service, error) {
+		return cc.VanClient.KubeClient.CoreV1().Services(cc.CurrentNamespace).Get(name, metav1.GetOptions{})
+
+	}
+
+	timedOut := func() error {
+		return fmt.Errorf("Timeout waiting for service: %s\n", name)
+	}
+
+	service, err := getService()
+	if err == nil {
+		return service, nil
+	}
+
+	if timeout < DefaultTick+guardTime {
+		return nil, timedOut()
+	}
+
+	timeout_elapsed := time.After(timeout)
+	tick := time.Tick(DefaultTick)
 	for {
 		select {
-		case <-timeout:
-			log.Panicln("Timed Out Waiting for service.")
+		case <-timeout_elapsed:
+			return nil, timedOut()
 		case <-tick:
-			service, err := cc.VanClient.KubeClient.CoreV1().Services(cc.CurrentNamespace).Get(name, metav1.GetOptions{})
+			service, err := getService()
 			if err == nil {
-				return service
+				return service, nil
 			} else {
 				log.Println("Service not ready yet, current pods state: ")
 				cc.KubectlExec("get pods -o wide") //TODO use clientset
 			}
-
 		}
 	}
 }
@@ -256,4 +282,15 @@ func (cc *ClusterContext) WaitForJob(jobName string, timeout_S time.Duration) (*
 		}
 	}
 
+}
+
+func (cc *ClusterContext) WaitForSkupperServiceToBeCreatedAndReadyToUse(service string, timeout time.Duration) (*apiv1.Service, error) {
+
+	svc, err := cc.GetService(service, timeout)
+	if err != nil {
+		return nil, err
+	}
+
+	time.Sleep(SkupperServiceReadyPeriod)
+	return svc, nil
 }
