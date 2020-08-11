@@ -264,6 +264,12 @@ func AssertJob(t *testing.T, job *batchv1.Job) {
 	//assert.Equal(r.T, int(job.Status.Failed), 0)
 }
 
+func SkipTestJobIfMustBeSkipped(t *testing.T) {
+	if os.Getenv("JOB") == "" {
+		t.Skip("JOB environment variable not defined")
+	}
+}
+
 //TODO evaluate modifying this implementation to use informers instead of
 //pooling.
 func (cc *ClusterContext) WaitForJob(jobName string, timeout time.Duration) (*batchv1.Job, error) {
