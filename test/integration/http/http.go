@@ -74,8 +74,8 @@ func (r *HttpClusterTestRunner) RunTests(ctx context.Context) {
 	//for tcp_echo test, since in case of reducing test may fail
 	//intermitently
 
-	r.Pub1Cluster.GetService("httpbin", 3*minute)
-	time.Sleep(20 * time.Second) //TODO XXX What is the right condition to wait for?
+	_, err := r.Pub1Cluster.WaitForSkupperServiceToBeCreatedAndReadyToUse("httpbin", cluster.ImagePullingAndResourceCreationTimeout)
+	assert.Assert(r.T, err)
 
 	r.Pub1Cluster.KubectlExecAsync(fmt.Sprintf("port-forward service/httpbin 8080:80"))
 	defer exec.Command("pkill", "kubectl").Run()
