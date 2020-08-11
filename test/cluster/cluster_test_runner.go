@@ -260,11 +260,13 @@ func (cc *ClusterContext) WaitForJob(jobName string, timeout time.Duration) (*ba
 
 	defer cc.KubectlExec("logs job/" + jobName)
 
+	timeoutCh := time.After(timeout)
+	tick := time.Tick(5 * time.Second)
 	for {
 		select {
-		case <-time.After(timeout):
+		case <-timeoutCh:
 			return nil, fmt.Errorf("Timeout: Job is still active")
-		case <-time.Tick(5 * time.Second):
+		case <-tick:
 			job, _ := jobsClient.Get(jobName, metav1.GetOptions{})
 
 			cc.KubectlExec(fmt.Sprintf("get job/%s -o wide", jobName))
