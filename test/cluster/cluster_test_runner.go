@@ -311,6 +311,8 @@ func (cc *ClusterContext) WaitForSkupperServiceToBeCreatedAndReadyToUse(service 
 		return nil, err
 	}
 
+	//Provide mechanism to wait until a newly defined service is 'ready'
+	//https://github.com/skupperproject/skupper/issues/163
 	time.Sleep(SkupperServiceReadyPeriod)
 	return svc, nil
 }
