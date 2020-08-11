@@ -19,6 +19,15 @@ import (
 	vanClient "github.com/skupperproject/skupper/client"
 )
 
+const (
+	//until this issue: https://github.com/skupperproject/skupper/issues/163
+	//is fixed, this is the best we can do
+	SkupperServiceReadyPeriod              time.Duration = time.Minute
+	DefaultTick                                          = time.Second * 5
+	TestJobBackOffLimit                                  = 3
+	ImagePullingAndResourceCreationTimeout               = 10 * time.Minute
+)
+
 type ClusterTestRunnerInterface interface {
 	Build(t *testing.T, ns_suffix string) //is this interface used?
 	Run()
