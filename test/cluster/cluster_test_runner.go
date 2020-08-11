@@ -22,8 +22,10 @@ import (
 const (
 	//until this issue: https://github.com/skupperproject/skupper/issues/163
 	//is fixed, this is the best we can do
-	SkupperServiceReadyPeriod time.Duration = time.Minute
-	DefaultTick                             = time.Second * 5
+	SkupperServiceReadyPeriod              time.Duration = time.Minute
+	DefaultTick                                          = time.Second * 5
+	TestJobBackOffLimit                                  = 3
+	ImagePullingAndResourceCreationTimeout               = 10 * time.Minute
 )
 
 type ClusterTestRunnerInterface interface {
@@ -252,20 +254,36 @@ func (cc *ClusterContext) CreateTestJob(name string, command []string) (*batchv1
 	return job, nil
 }
 
+func AssertJob(t *testing.T, job *batchv1.Job) {
+	t.Helper()
+	assert.Equal(t, int(job.Status.Succeeded), 1)
+	assert.Equal(t, int(job.Status.Active), 0)
+
+	//Now that we are using a
+	//backoff limit grater than 1, evaluate what to assert here
+	//assert.Equal(r.T, int(job.Status.Failed), 0)
+}
+
 //TODO evaluate modifying this implementation to use informers instead of
 //pooling.
 func (cc *ClusterContext) WaitForJob(jobName string, timeout time.Duration) (*batchv1.Job, error) {
 
+	if timeout < DefaultTick {
+		return nil, fmt.Errorf("timeout too small: %v", timeout)
+	}
+
 	jobsClient := cc.VanClient.KubeClient.BatchV1().Jobs(cc.CurrentNamespace)
 
+	//TODO: in case of multiple retries, is it possible to print last, and
+	//previous logs?
 	defer cc.KubectlExec("logs job/" + jobName)
 
 	timeoutCh := time.After(timeout)
-	tick := time.Tick(5 * time.Second)
+	tick := time.Tick(DefaultTick)
 	for {
 		select {
 		case <-timeoutCh:
-			return nil, fmt.Errorf("Timeout: Job is still active")
+			return nil, fmt.Errorf("Timeout: Job is still active: %s", jobName)
 		case <-tick:
 			job, _ := jobsClient.Get(jobName, metav1.GetOptions{})
 

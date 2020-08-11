@@ -10,7 +10,6 @@ import (
 	"gotest.tools/assert"
 
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,13 +63,12 @@ var deployment *appsv1.Deployment = &appsv1.Deployment{
 func (r *TcpEchoClusterTestRunner) RunTests(ctx context.Context) {
 
 	//XXX
-	start := time.Now()
-	timeout := 10 * time.Minute
+	endTime := time.Now().Add(cluster.ImagePullingAndResourceCreationTimeout)
 
-	_, err := r.Pub1Cluster.WaitForSkupperServiceToBeCreatedAndReadyToUse("tcp-go-echo", timeout)
+	_, err := r.Pub1Cluster.WaitForSkupperServiceToBeCreatedAndReadyToUse("tcp-go-echo", endTime.Sub(time.Now()))
 	assert.Assert(r.T, err)
 
-	_, err = r.Priv1Cluster.WaitForSkupperServiceToBeCreatedAndReadyToUse("tcp-go-echo", timeout-time.Since(start))
+	_, err = r.Priv1Cluster.WaitForSkupperServiceToBeCreatedAndReadyToUse("tcp-go-echo", endTime.Sub(time.Now()))
 	assert.Assert(r.T, err)
 
 	jobName := "tcp-echo"
@@ -89,20 +87,15 @@ func (r *TcpEchoClusterTestRunner) RunTests(ctx context.Context) {
 	_, err = r.Priv1Cluster.CreateTestJob(jobName, jobCmd)
 	assert.Assert(r.T, err)
 
-	assertJob := func(job *batchv1.Job) {
-		r.T.Helper()
-		assert.Equal(r.T, int(job.Status.Succeeded), 1)
-		assert.Equal(r.T, int(job.Status.Active), 0)
-		//assert.Equal(r.T, int(job.Status.Failed), 0)
-	}
+	endTime = time.Now().Add(cluster.ImagePullingAndResourceCreationTimeout)
 
-	job, err := r.Pub1Cluster.WaitForJob(jobName, 10*time.Minute)
+	job, err := r.Pub1Cluster.WaitForJob(jobName, endTime.Sub(time.Now()))
 	assert.Assert(r.T, err)
-	assertJob(job)
+	cluster.AssertJob(r.T, job)
 
-	job, err = r.Priv1Cluster.WaitForJob(jobName, 10*time.Minute)
+	job, err = r.Priv1Cluster.WaitForJob(jobName, endTime.Sub(time.Now()))
 	assert.Assert(r.T, err)
-	assertJob(job)
+	cluster.AssertJob(r.T, job)
 }
 
 func (r *TcpEchoClusterTestRunner) Setup(ctx context.Context) {
