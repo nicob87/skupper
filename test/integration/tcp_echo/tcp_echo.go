@@ -10,7 +10,6 @@ import (
 	"gotest.tools/assert"
 
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,8 +20,6 @@ type TcpEchoClusterTestRunner struct {
 }
 
 func int32Ptr(i int32) *int32 { return &i }
-
-const minute time.Duration = 60
 
 var deployment *appsv1.Deployment = &appsv1.Deployment{
 	TypeMeta: metav1.TypeMeta{
@@ -66,9 +63,13 @@ var deployment *appsv1.Deployment = &appsv1.Deployment{
 func (r *TcpEchoClusterTestRunner) RunTests(ctx context.Context) {
 
 	//XXX
-	r.Pub1Cluster.GetService("tcp-go-echo", 10*minute)
-	r.Priv1Cluster.GetService("tcp-go-echo", 10*minute)
-	time.Sleep(60 * time.Second) //TODO What is the right condition to wait for?
+	endTime := time.Now().Add(cluster.ImagePullingAndResourceCreationTimeout)
+
+	_, err := r.Pub1Cluster.WaitForSkupperServiceToBeCreatedAndReadyToUse("tcp-go-echo", endTime.Sub(time.Now()))
+	assert.Assert(r.T, err)
+
+	_, err = r.Priv1Cluster.WaitForSkupperServiceToBeCreatedAndReadyToUse("tcp-go-echo", endTime.Sub(time.Now()))
+	assert.Assert(r.T, err)
 
 	jobName := "tcp-echo"
 	jobCmd := []string{"/app/tcp_echo_test", "-test.run", "Job"}
@@ -80,26 +81,21 @@ func (r *TcpEchoClusterTestRunner) RunTests(ctx context.Context) {
 	//TODO the pattern: create Job or jobs, wait for termination, and assert
 	//success probably will be moved to common cluster_test_runner.go
 	//source.
-	_, err := r.Pub1Cluster.CreateTestJob(jobName, jobCmd)
+	_, err = r.Pub1Cluster.CreateTestJob(jobName, jobCmd)
 	assert.Assert(r.T, err)
 
 	_, err = r.Priv1Cluster.CreateTestJob(jobName, jobCmd)
 	assert.Assert(r.T, err)
 
-	assertJob := func(job *batchv1.Job) {
-		r.T.Helper()
-		assert.Equal(r.T, int(job.Status.Succeeded), 1)
-		assert.Equal(r.T, int(job.Status.Active), 0)
-		//assert.Equal(r.T, int(job.Status.Failed), 0)
-	}
+	endTime = time.Now().Add(cluster.ImagePullingAndResourceCreationTimeout)
 
-	job, err := r.Pub1Cluster.WaitForJob(jobName, 5*minute)
+	job, err := r.Pub1Cluster.WaitForJob(jobName, endTime.Sub(time.Now()))
 	assert.Assert(r.T, err)
-	assertJob(job)
+	cluster.AssertJob(r.T, job)
 
-	job, err = r.Priv1Cluster.WaitForJob(jobName, 5*minute)
+	job, err = r.Priv1Cluster.WaitForJob(jobName, endTime.Sub(time.Now()))
 	assert.Assert(r.T, err)
-	assertJob(job)
+	cluster.AssertJob(r.T, job)
 }
 
 func (r *TcpEchoClusterTestRunner) Setup(ctx context.Context) {

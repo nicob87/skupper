@@ -24,8 +24,6 @@ type HttpClusterTestRunner struct {
 
 func int32Ptr(i int32) *int32 { return &i }
 
-const minute time.Duration = 60
-
 var httpbinDep *appsv1.Deployment = &appsv1.Deployment{
 	TypeMeta: metav1.TypeMeta{
 		APIVersion: "apps/v1",
