@@ -78,9 +78,6 @@ func (r *TcpEchoClusterTestRunner) RunTests(ctx context.Context) {
 	//namespaces (or clusters), the same service must exist in both clusters
 	//because of the skupper connections and the "skupper exposed"
 	//deployment.
-	//TODO the pattern: create Job or jobs, wait for termination, and assert
-	//success probably will be moved to common cluster_test_runner.go
-	//source.
 	_, err = r.Pub1Cluster.CreateTestJob(jobName, jobCmd)
 	assert.Assert(r.T, err)
 
