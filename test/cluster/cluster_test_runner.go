@@ -79,7 +79,7 @@ func BuildClusterContext(t *testing.T, namespacePrefix string, configFile string
 	return cc
 }
 
-func _exec(command string, wait bool) *exec.Cmd {
+func _exec(command string, wait bool) (*exec.Cmd, error) {
 	var output []byte
 	var err error
 	fmt.Println(command)
@@ -88,35 +88,35 @@ func _exec(command string, wait bool) *exec.Cmd {
 		output, err = cmd.CombinedOutput()
 		fmt.Println(string(output))
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 	} else {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.Start()
 	}
-	return cmd
+	return cmd, nil
 }
 
-func (cc *ClusterContext) exec(main_command string, sub_command string, wait bool) *exec.Cmd {
+func (cc *ClusterContext) exec(main_command string, sub_command string, wait bool) (*exec.Cmd, error) {
 	return _exec("KUBECONFIG="+cc.ClusterConfigFile+" "+main_command+" "+cc.CurrentNamespace+" "+sub_command, wait)
 }
 
 //TODO remove this
-func (cc *ClusterContext) SkupperExec(command string) *exec.Cmd {
+func (cc *ClusterContext) SkupperExec(command string) (*exec.Cmd, error) {
 	return cc.exec("./skupper -n ", command, true)
 }
 
-func (cc *ClusterContext) _kubectl_exec(command string, wait bool) *exec.Cmd {
+func (cc *ClusterContext) _kubectl_exec(command string, wait bool) (*exec.Cmd, error) {
 	return cc.exec("kubectl -n ", command, wait)
 }
 
 //TODO return error instead of panic in case of exit code != 0
-func (cc *ClusterContext) KubectlExec(command string) *exec.Cmd {
+func (cc *ClusterContext) KubectlExec(command string) (*exec.Cmd, error) {
 	return cc._kubectl_exec(command, true)
 }
 
-func (cc *ClusterContext) KubectlExecAsync(command string) *exec.Cmd {
+func (cc *ClusterContext) KubectlExecAsync(command string) (*exec.Cmd, error) {
 	return cc._kubectl_exec(command, false)
 }
 
