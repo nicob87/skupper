@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/skupperproject/skupper/api/types"
+	cli "github.com/skupperproject/skupper/client"
 	"github.com/skupperproject/skupper/pkg/kube"
-        cli "github.com/skupperproject/skupper/client"
 	"gotest.tools/assert"
 )
 
@@ -61,8 +61,6 @@ func getNamespace(targetNamespace string, t *TopologyTest) *SkupperNamespace {
 	}
 
 	fp(os.Stdout, "getNamespace error: can't find client |%s|\n", targetNamespace)
-	os.Exit(1)
-
 	return nil
 }
 
@@ -112,7 +110,7 @@ func getConnectivity(
 }
 
 func check(t *testing.T, err error, test, msg string) {
-	assert.Check(t, err, "\n\n%sTest %s error : %s%s\n", red, test, msg, resetColor)
+	assert.Assert(t, err, "\n\n%sTest %s error : %s%s\n", red, test, msg, resetColor)
 }
 
 func info(test, msg string) {
@@ -123,23 +121,17 @@ func info(test, msg string) {
 
 func TestEdgeConnectivity(t *testing.T) {
 
-        /*
-	if !*clusterRun {
-		t.Skip(fmt.Sprintf("%sSkipping: This test only works in real clusters.%s", string(red), string(resetColor)))
-		return
-	}
-        */
 	tests := []TopologyTest{
 		// Test 1 ---------------------------------------------------
 		{
 			name:    "test-1",
 			diagram: []string{"edge  -->  interior"},
 			namespaces: []*SkupperNamespace{
-				&SkupperNamespace{
+				{
 					name:   "test-1-edge", // Edge name must always contain the string "edge".
 					isEdge: true,
 				},
-				&SkupperNamespace{
+				{
 					name:   "test-1-interior",
 					isEdge: false,
 				},
@@ -159,15 +151,15 @@ func TestEdgeConnectivity(t *testing.T) {
 			diagram: []string{"edge  -->  interior-1",
 				"edge  -->  interior-2"},
 			namespaces: []*SkupperNamespace{
-				&SkupperNamespace{
+				{
 					name:   "test-2-edge", // Edge name must always contain the string "edge".
 					isEdge: true,
 				},
-				&SkupperNamespace{
+				{
 					name:   "test-2-interior-1",
 					isEdge: false,
 				},
-				&SkupperNamespace{
+				{
 					name:   "test-2-interior-2",
 					isEdge: false,
 				},
@@ -316,13 +308,6 @@ func TestEdgeConnectivity(t *testing.T) {
 
 		var err error
 
-                /*
-		if !*clusterRun {
-			t.Skip(fmt.Sprintf("%sSkipping: This test only works in real clusters.%s", red, resetColor))
-			return
-		}
-                */
-
 		if verbose {
 			fp(os.Stdout, "\n\n%s%s\n\n", cyan, test.name)
 			for _, s := range test.diagram {
@@ -391,7 +376,9 @@ func TestEdgeConnectivity(t *testing.T) {
 		for _, cnx := range test.connexions {
 
 			fromNS := getNamespace(cnx.from, &test)
+			assert.Assert(t, fromNS != nil)
 			toNS := getNamespace(cnx.to, &test)
+			assert.Assert(t, toNS != nil)
 
 			// Connect the from-client to the to-client.
 			connectionName := cnx.from + cnx.to
@@ -412,10 +399,10 @@ func TestEdgeConnectivity(t *testing.T) {
 		//-----------------------------------------------------
 		edgeNS := getEdge(&test)
 
-		direct, indirect, err := getConnectivity(test.name, edgeNS, ctx, 30, test.direct, test.indirect)
+		direct, indirect, err := getConnectivity(test.name, edgeNS, ctx, 600, test.direct, test.indirect)
 		check(t, err, test.name, "Can't get connectivity.")
 		if direct != test.direct || indirect != test.indirect {
-			assert.Check(t, false, "\n\n%sTest %s error : expected direct %d, indirect %d but got direct %d, indirect %d %s\n", red, test, test.direct, test.indirect, direct, indirect, resetColor)
+			assert.Assert(t, false, "\n\n%sTest %s error : expected direct %d, indirect %d but got direct %d, indirect %d %s\n", red, test, test.direct, test.indirect, direct, indirect, resetColor)
 		}
 	}
 }
