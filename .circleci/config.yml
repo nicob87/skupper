@@ -82,7 +82,7 @@ commands:
     steps:
       - run:
           name: Run Integration Tests
-          command: go test -tags=integration -v ./test/integration/...
+          command: go test -tags=integration -v ./test/integration/edge_connectivity/...
       - run:
           name: Run client tests in real cluster
           command: go test -v -count=1 ./client -use-cluster
@@ -182,14 +182,14 @@ jobs:
             echo 'export TEST_IMAGE=<< pipeline.parameters.ci_test_image >>' >> $BASH_ENV
             source $BASH_ENV
       - setup_remote_docker
-      - go/mod-download-cached
-      - run: make
+      #- go/mod-download-cached
+      #- run: make
       - run: docker login quay.io -u ${DOCKER_LOGIN} -p ${DOCKER_PASSWORD}
       - run: make -e docker-build
       - run: make -e docker-push
-      - run: make package
-      - run: make clean
-      - go/test
+      #- run: make package
+      #- run: make clean
+      #- go/test
 
   remove_from_registry:
     executor:
