@@ -86,7 +86,7 @@ func getConnectivity(
 			break
 		}
 		info(testName, "Checking connectivity...")
-		response, err := namespace.client.VanRouterInspect(ctx)
+		response, err := namespace.client.RouterInspect(ctx)
 
 		if err == nil {
 			// Sometimes it takes a while for all the connected sites
@@ -185,15 +185,15 @@ func TestEdgeConnectivity(t *testing.T) {
 				"edge  -->  interior-2",
 				"interior-1  --> interior-2"},
 			namespaces: []*SkupperNamespace{
-				&SkupperNamespace{
+				{
 					name:   "test-3-edge", // Edge name must always contain the string "edge".
 					isEdge: true,
 				},
-				&SkupperNamespace{
+				{
 					name:   "test-3-interior-1",
 					isEdge: false,
 				},
-				&SkupperNamespace{
+				{
 					name:   "test-3-interior-2",
 					isEdge: false,
 				},
@@ -224,19 +224,19 @@ func TestEdgeConnectivity(t *testing.T) {
 				"edge  -->  interior-2",
 				"edge  -->  interior-3"},
 			namespaces: []*SkupperNamespace{
-				&SkupperNamespace{
+				{
 					name:   "test-4-edge",
 					isEdge: true,
 				},
-				&SkupperNamespace{
+				{
 					name:   "test-4-interior-1",
 					isEdge: false,
 				},
-				&SkupperNamespace{
+				{
 					name:   "test-4-interior-2",
 					isEdge: false,
 				},
-				&SkupperNamespace{
+				{
 					name:   "test-4-interior-3",
 					isEdge: false,
 				},
@@ -272,15 +272,15 @@ func TestEdgeConnectivity(t *testing.T) {
 			diagram: []string{"edge  -->  interior-1",
 				"interior-1  -->  interior-2"},
 			namespaces: []*SkupperNamespace{
-				&SkupperNamespace{
+				{
 					name:   "test-5-edge",
 					isEdge: true,
 				},
-				&SkupperNamespace{
+				{
 					name:   "test-5-interior-1",
 					isEdge: false,
 				},
-				&SkupperNamespace{
+				{
 					name:   "test-5-interior-2",
 					isEdge: false,
 				},
@@ -343,8 +343,8 @@ func TestEdgeConnectivity(t *testing.T) {
 			check(t, err, test.name, fmt.Sprintf("Can't create namespace |%s|.", namespace.name))
 			info(test.name, fmt.Sprintf("Created namespace |%s|.", namespace.name))
 
-			err = namespace.client.VanRouterCreate(ctx, types.VanSiteConfig{
-				Spec: types.VanSiteConfigSpec{
+			err = namespace.client.RouterCreate(ctx, types.SiteConfig{
+				Spec: types.SiteConfigSpec{
 					SkupperName:       namespace.name,
 					IsEdge:            namespace.isEdge,
 					EnableController:  true,
@@ -364,7 +364,7 @@ func TestEdgeConnectivity(t *testing.T) {
 			if _, ok := needToken[namespace.name]; ok {
 				tokenName := "token-" + namespace.name
 				namespace.secretFileName = testPath + tokenName + ".yaml"
-				err = namespace.client.VanConnectorTokenCreateFile(ctx, tokenName, namespace.secretFileName)
+				err = namespace.client.ConnectorTokenCreateFile(ctx, tokenName, namespace.secretFileName)
 				check(t, err, test.name, fmt.Sprintf("Can't create connexion token for namespace |%s|.", namespace.name))
 				info(test.name, fmt.Sprintf("Created connexion token for namespace |%s| at file |%s|.", namespace.name, namespace.secretFileName))
 
@@ -384,8 +384,8 @@ func TestEdgeConnectivity(t *testing.T) {
 			// Connect the from-client to the to-client.
 			connectionName := cnx.from + cnx.to
 			connectorName := "connector-for-" + connectionName
-			_, err = fromNS.client.VanConnectorCreateFromFile(ctx, toNS.secretFileName,
-				types.VanConnectorCreateOptions{
+			_, err = fromNS.client.ConnectorCreateFromFile(ctx, toNS.secretFileName,
+				types.ConnectorCreateOptions{
 					Name:             connectorName,
 					SkupperNamespace: fromNS.name,
 					Cost:             1,
