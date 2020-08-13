@@ -110,6 +110,7 @@ func getConnectivity(
 }
 
 func check(t *testing.T, err error, test, msg string) {
+	t.Helper()
 	assert.Assert(t, err, "\n\n%sTest %s error : %s%s\n", red, test, msg, resetColor)
 }
 
