@@ -768,18 +768,41 @@ func NewCmdDebug() *cobra.Command {
 	return cmd
 }
 
-func NewCmdDebugDump(cli types.VanClientInterface) *cobra.Command {
+//func
+//rootCmd.SilenceUsage = true
+//rootCmd.SilenceErrors = true
+
+func SkupperCmdRun(run func(cmd *cobra.Command, args []string, cli types.VanClientInterface) error) func(*cobra.Command, []string) error {
+	//or it could be enabled silenced for all commands (every command can
+	//revert):
+	//rootCmd.SilenceUsage = true
+	//rootCmd.SilenceErrors = true
+	return func(cmd *cobra.Command, args []string) error {
+		cli := NewClient(namespace, kubeContext, kubeconfig)
+		return run(cmd, args, cli)
+	}
+}
+
+func DebugDumpRun(cmd *cobra.Command, args []string, cli types.VanClientInterface) error {
+
+	//When to silence cobra could be delegated to every run execution like
+	//this:
+	//rootCmd.SilenceUsage = true
+	//rootCmd.SilenceErrors = true
+	return fmt.Errorf("Forcing command failure: ")
+	err := cli.SkupperDump(context.Background(), args[0], version, kubeconfig, kubeContext)
+	if err != nil {
+		return fmt.Errorf("Unable to save skupper details: %w", err)
+	}
+	return nil
+}
+
+func NewCmdDebugDump() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "dump <filename>",
 		Short: "Collect and save skupper logs, config, etc.",
 		Args:  requiredArg("save file"),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			err := cli.SkupperDump(context.Background(), args[0], version, kubeconfig, kubeContext)
-			if err != nil {
-				return fmt.Errorf("Unable to save skupper details: %w", err)
-			}
-			return nil
-		},
+		RunE:  SkupperCmdRun(DebugDumpRun),
 	}
 	return cmd
 }
@@ -792,7 +815,8 @@ var rootCmd *cobra.Command
 func init() {
 	routev1.AddToScheme(scheme.Scheme)
 
-	cli := NewClient(namespace, kubeContext, kubeconfig)
+	cli := &client.VanClient{}
+	//cli := NewClient(namespace, kubeContext, kubeconfig)
 
 	cmdInit := NewCmdInit(cli)
 	cmdDelete := NewCmdDelete(cli)
@@ -810,7 +834,7 @@ func init() {
 	cmdBind := NewCmdBind(cli)
 	cmdUnbind := NewCmdUnbind(cli)
 	cmdVersion := NewCmdVersion(cli)
-	cmdDebugDump := NewCmdDebugDump(cli)
+	cmdDebugDump := NewCmdDebugDump()
 
 	// setup subcommands
 	cmdService := NewCmdService()
@@ -848,8 +872,7 @@ the .bash_profile. i.e.: $ source <(skupper completion)
 }
 
 func main() {
-	rootCmd.SilenceUsage = true
-	rootCmd.SilenceErrors = true
+	//initCmd()
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
