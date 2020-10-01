@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/skupperproject/skupper/api/types"
 	"github.com/skupperproject/skupper/test/utils/base"
 
 	"gotest.tools/assert"
@@ -31,6 +32,43 @@ func Setup(ctx context.Context, t *testing.T, r *base.ClusterTestRunnerBase) {
 
 	_, err = prv1Cluster.KubectlExec("apply -f https://raw.githubusercontent.com/skupperproject/skupper-example-bookinfo/master/private-cloud.yaml")
 	assert.Assert(t, err)
+
+	detailsService := types.ServiceInterface{
+		Address:  "details",
+		Protocol: "http",
+		Port:     80,
+	}
+
+	reviewsService := types.ServiceInterface{
+		Address:  "reviews",
+		Protocol: "http",
+		Port:     80,
+	}
+
+	ratingsService := types.ServiceInterface{
+		Address:  "ratings",
+		Protocol: "http",
+		Port:     80,
+	}
+
+	err = prv1Cluster.VanClient.ServiceInterfaceCreate(ctx, &detailsService)
+	assert.Assert(t, err)
+
+	err = prv1Cluster.VanClient.ServiceInterfaceCreate(ctx, &reviewsService)
+	assert.Assert(t, err)
+
+	err = pub1Cluster.VanClient.ServiceInterfaceCreate(ctx, &ratingsService)
+	assert.Assert(t, err)
+
+	err = prv1Cluster.VanClient.ServiceInterfaceBind(ctx, &detailsService, "service", "details", "http", 0)
+	assert.Assert(t, err)
+
+	err = prv1Cluster.VanClient.ServiceInterfaceBind(ctx, &detailsService, "service", "details", "http", 0)
+	assert.Assert(t, err)
+
+	err = pub1Cluster.VanClient.ServiceInterfaceBind(ctx, &detailsService, "service", "details", "http", 0)
+	assert.Assert(t, err)
+
 }
 
 func RemoveNamespacesForContexes(r *base.ClusterTestRunnerBase, public []int, priv []int) error {
