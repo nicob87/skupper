@@ -101,6 +101,9 @@ func (c *ClusterTestRunnerBase) GetContext(private bool, id int) (*ClusterContex
 		for _, cc := range c.ClusterContexts {
 			fmt.Printf("======Cluster context = %v\n", *cc)
 			if cc.Private == private && cc.Id == id {
+				fmt.Printf("======private!! = %v\n", private)
+				fmt.Printf("======id!! = %v\n", id)
+				fmt.Printf("======match!! = %v\n", *cc)
 				return cc, nil
 			}
 		}
