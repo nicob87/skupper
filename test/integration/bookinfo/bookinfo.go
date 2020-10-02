@@ -36,19 +36,19 @@ func Setup(ctx context.Context, t *testing.T, r *base.ClusterTestRunnerBase) {
 	detailsService := types.ServiceInterface{
 		Address:  "details",
 		Protocol: "http",
-		Port:     80,
+		//Port:     80,
 	}
 
 	reviewsService := types.ServiceInterface{
 		Address:  "reviews",
 		Protocol: "http",
-		Port:     80,
+		//Port:     80,
 	}
 
 	ratingsService := types.ServiceInterface{
 		Address:  "ratings",
 		Protocol: "http",
-		Port:     80,
+		//Port:     80,
 	}
 
 	err = prv1Cluster.VanClient.ServiceInterfaceCreate(ctx, &detailsService)
@@ -63,30 +63,12 @@ func Setup(ctx context.Context, t *testing.T, r *base.ClusterTestRunnerBase) {
 	err = prv1Cluster.VanClient.ServiceInterfaceBind(ctx, &detailsService, "service", "details", "http", 0)
 	assert.Assert(t, err)
 
-	err = prv1Cluster.VanClient.ServiceInterfaceBind(ctx, &detailsService, "service", "details", "http", 0)
+	err = prv1Cluster.VanClient.ServiceInterfaceBind(ctx, &detailsService, "service", "reviews", "http", 0)
 	assert.Assert(t, err)
 
-	err = pub1Cluster.VanClient.ServiceInterfaceBind(ctx, &detailsService, "service", "details", "http", 0)
+	err = pub1Cluster.VanClient.ServiceInterfaceBind(ctx, &detailsService, "service", "ratings", "http", 0)
 	assert.Assert(t, err)
 
-}
-
-func RemoveNamespacesForContexes(r *base.ClusterTestRunnerBase, public []int, priv []int) error {
-	removeNamespaces := func(private bool, ids []int) error {
-		for id := range ids {
-			cc, err := r.GetContext(private, id)
-			if err != nil {
-				return err
-			}
-			cc.DeleteNamespace()
-		}
-		return nil
-	}
-	err := removeNamespaces(true, priv)
-	if err != nil {
-		return err
-	}
-	return removeNamespaces(false, public)
 }
 
 func Run(ctx context.Context, t *testing.T, r *base.ClusterTestRunnerBase) {
