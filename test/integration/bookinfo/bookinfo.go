@@ -63,10 +63,10 @@ func Setup(ctx context.Context, t *testing.T, r *base.ClusterTestRunnerBase) {
 	err = prv1Cluster.VanClient.ServiceInterfaceBind(ctx, &detailsService, "service", "details", "http", 0)
 	assert.Assert(t, err)
 
-	err = prv1Cluster.VanClient.ServiceInterfaceBind(ctx, &detailsService, "service", "reviews", "http", 0)
+	err = prv1Cluster.VanClient.ServiceInterfaceBind(ctx, &reviewsService, "service", "reviews", "http", 0)
 	assert.Assert(t, err)
 
-	err = pub1Cluster.VanClient.ServiceInterfaceBind(ctx, &detailsService, "service", "ratings", "http", 0)
+	err = pub1Cluster.VanClient.ServiceInterfaceBind(ctx, &ratingsService, "service", "ratings", "http", 0)
 	assert.Assert(t, err)
 
 }
