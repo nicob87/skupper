@@ -4,10 +4,16 @@ package tcp_echo
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/skupperproject/skupper/test/utils/base"
+	"github.com/skupperproject/skupper/test/utils/k8s"
+	"gotest.tools/assert"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
@@ -23,7 +29,7 @@ func TestBookinfo(t *testing.T) {
 		PublicClusters:  1,
 		PrivateClusters: 1,
 	}
-	testRunner := &base.ClusterTestRunnerBase{} //TODO rename ClusterTestRunnerBase -> ClusterTestRunner
+	testRunner := &base.ClusterTestRunnerBase{}
 	testRunner.BuildOrSkip(t, needs, nil)
 	ctx, cancel := context.WithCancel(context.Background())
 	base.HandleInterruptSignal(t, func(t *testing.T) {
@@ -33,68 +39,30 @@ func TestBookinfo(t *testing.T) {
 	Run(ctx, t, testRunner)
 }
 
-//func sendReceive() error {
-//doneCh := make(chan error)
-//go func(doneCh chan error) {
-//servAddr := "tcp-go-echo:9090"
+func tryProductPage() ([]byte, error) {
 
-//strEcho := "Halo"
-//log.Println("Resolving TCP Address")
-//tcpAddr, err := net.ResolveTCPAddr("tcp", servAddr)
-//if err != nil {
-//doneCh <- fmt.Errorf("ResolveTCPAddr failed: %s\n", err.Error())
-//return
-//}
+	//resp, err := http.Get("http://productpage:9080/productpage?u=test")
+	resp, err := http.Get("http://10.97.101.131:9080/productpage?u=test")
+	if err != nil {
+		return nil, err
+	}
+	if resp.Status != "200 OK" {
+		return nil, fmt.Errorf("unexpedted http response status: %v", resp.Status)
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
+}
 
-//log.Println("Opening TCP connection")
-//conn, err := net.DialTCP("tcp", nil, tcpAddr)
-//if err != nil {
-//doneCh <- fmt.Errorf("Dial failed: %s\n", err.Error())
-//return
-//}
-//defer conn.Close()
-
-//log.Println("Sending data")
-//_, err = conn.Write([]byte(strEcho))
-//if err != nil {
-//doneCh <- fmt.Errorf("Write to server failed: %s\n", err.Error())
-//return
-//}
-
-//log.Println("Receiving reply")
-//reply := make([]byte, 1024)
-
-//_, err = conn.Read(reply)
-//if err != nil {
-//doneCh <- fmt.Errorf("Read from server failed: %s\n", err.Error())
-//return
-//}
-
-//log.Println("Sent to server = ", strEcho)
-//log.Println("Reply from server = ", string(reply))
-
-//if !strings.Contains(string(reply), strings.ToUpper(strEcho)) {
-//doneCh <- fmt.Errorf("Response from server different that expected: %s\n", string(reply))
-//return
-//}
-
-//doneCh <- nil
-//}(doneCh)
-//timeoutCh := time.After(time.Minute)
-
-//// TCP Echo Client job sometimes hangs waiting for response
-//// This will cause job to fail and a retry to occur
-//var err error
-//select {
-//case err = <-doneCh:
-//case <-timeoutCh:
-//err = fmt.Errorf("timed out waiting for tcp-echo job to finish")
-//}
-
-//return err
-//}
-
-//func TestTcpEchoJob(t *testing.T) {
-//k8s.SkipTestJobIfMustBeSkipped(t)
-//assert.Assert(t, sendReceive())
-//}
+func TestBookinfoJob(t *testing.T) {
+	k8s.SkipTestJobIfMustBeSkipped(t)
+	_body, err := tryProductPage()
+	body := string(_body)
+	assert.Assert(t, err)
+	assert.Assert(t, strings.Contains(body, "Book Details"), body)
+	assert.Assert(t, strings.Contains(body, "An extremely entertaining play by Shakespeare. The slapstick humour is refreshing!"), body)
+	assert.Assert(t, !strings.Contains(body, "Ratings service is currently unavailable"), body)
+}

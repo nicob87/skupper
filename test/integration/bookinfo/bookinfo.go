@@ -7,14 +7,28 @@ import (
 
 	"github.com/skupperproject/skupper/api/types"
 	"github.com/skupperproject/skupper/test/utils/base"
+	"github.com/skupperproject/skupper/test/utils/constants"
+	"github.com/skupperproject/skupper/test/utils/k8s"
 
 	"gotest.tools/assert"
 )
 
-//func int32Ptr(i int32) *int32 { return &i }
-
 func RunTests(ctx context.Context, t *testing.T, r *base.ClusterTestRunnerBase) {
+	pub1Cluster, err := r.GetPublicContext(1)
+	assert.Assert(t, err)
+
 	fmt.Printf("Running tests!!!\n")
+
+	jobName := "bookinfo"
+	jobCmd := []string{"/app/bookinfo_test", "-test.run", "Job"}
+
+	_, err = k8s.CreateTestJob(pub1Cluster.Namespace, pub1Cluster.VanClient.KubeClient, jobName, jobCmd)
+	assert.Assert(t, err)
+
+	job, err := k8s.WaitForJob(pub1Cluster.Namespace, pub1Cluster.VanClient.KubeClient, jobName, constants.ImagePullingAndResourceCreationTimeout)
+	assert.Assert(t, err)
+
+	k8s.AssertJob(t, job)
 }
 
 func Setup(ctx context.Context, t *testing.T, r *base.ClusterTestRunnerBase) {
