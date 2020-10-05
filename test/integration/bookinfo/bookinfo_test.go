@@ -41,8 +41,7 @@ func TestBookinfo(t *testing.T) {
 
 func tryProductPage() ([]byte, error) {
 
-	//resp, err := http.Get("http://productpage:9080/productpage?u=test")
-	resp, err := http.Get("http://10.97.101.131:9080/productpage?u=test")
+	resp, err := http.Get("http://productpage:9080/productpage?u=test")
 	if err != nil {
 		return nil, err
 	}
