@@ -83,6 +83,17 @@ func Setup(ctx context.Context, t *testing.T, r *base.ClusterTestRunnerBase) {
 	err = pub1Cluster.VanClient.ServiceInterfaceBind(ctx, &ratingsService, "service", "ratings", "http", 0)
 	assert.Assert(t, err)
 
+	//TODO use here a goroutine group?! or something like that, that counts
+	//the number of processes to finish
+	_, err = k8s.WaitForSkupperServiceToBeCreatedAndReadyToUse(pub1Cluster.Namespace, pub1Cluster.VanClient.KubeClient, "details")
+	assert.Assert(t, err)
+
+	_, err = k8s.WaitForSkupperServiceToBeCreatedAndReadyToUse(pub1Cluster.Namespace, pub1Cluster.VanClient.KubeClient, "reviews")
+	assert.Assert(t, err)
+
+	_, err = k8s.WaitForSkupperServiceToBeCreatedAndReadyToUse(prv1Cluster.Namespace, prv1Cluster.VanClient.KubeClient, "ratings")
+	assert.Assert(t, err)
+
 }
 
 func Run(ctx context.Context, t *testing.T, r *base.ClusterTestRunnerBase) {
