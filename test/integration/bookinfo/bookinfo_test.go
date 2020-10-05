@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/skupperproject/skupper/test/utils/base"
 	"github.com/skupperproject/skupper/test/utils/k8s"
@@ -40,11 +41,15 @@ func TestBookinfo(t *testing.T) {
 }
 
 func tryProductPage() ([]byte, error) {
+	client := http.Client{
+		Timeout: 30 * time.Second,
+	}
 
-	resp, err := http.Get("http://productpage:9080/productpage?u=test")
+	resp, err := client.Get("http://productpage:9080/productpage?u=test")
 	if err != nil {
 		return nil, err
 	}
+
 	if resp.Status != "200 OK" {
 		return nil, fmt.Errorf("unexpedted http response status: %v", resp.Status)
 	}
@@ -59,8 +64,9 @@ func tryProductPage() ([]byte, error) {
 func TestBookinfoJob(t *testing.T) {
 	k8s.SkipTestJobIfMustBeSkipped(t)
 	_body, err := tryProductPage()
-	body := string(_body)
 	assert.Assert(t, err)
+
+	body := string(_body)
 	assert.Assert(t, strings.Contains(body, "Book Details"), body)
 	assert.Assert(t, strings.Contains(body, "An extremely entertaining play by Shakespeare. The slapstick humour is refreshing!"), body)
 	assert.Assert(t, !strings.Contains(body, "Ratings service is currently unavailable"), body)
