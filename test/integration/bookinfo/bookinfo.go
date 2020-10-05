@@ -24,7 +24,7 @@ func Setup(ctx context.Context, t *testing.T, r *base.ClusterTestRunnerBase) {
 	prv1Cluster, err := r.GetPrivateContext(1)
 	assert.Assert(t, err)
 
-	err = base.SetupSimplePublicPrivateAndConnect(ctx, r, "tcp_echo")
+	err = base.SetupSimplePublicPrivateAndConnect(ctx, r, "bookinfo")
 	assert.Assert(t, err)
 
 	_, err = pub1Cluster.KubectlExec("apply -f https://raw.githubusercontent.com/skupperproject/skupper-example-bookinfo/master/public-cloud.yaml")
