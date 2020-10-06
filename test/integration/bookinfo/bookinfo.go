@@ -3,6 +3,7 @@ package tcp_echo
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/skupperproject/skupper/api/types"
@@ -86,15 +87,22 @@ func Setup(ctx context.Context, t *testing.T, r *base.ClusterTestRunnerBase) {
 
 	//TODO use here a goroutine group?! or something like that, that counts
 	//the number of processes to finish
-	_, err = k8s.WaitForSkupperServiceToBeCreatedAndReadyToUse(pub1Cluster.Namespace, pub1Cluster.VanClient.KubeClient, "details")
-	assert.Assert(t, err)
+	var wg sync.WaitGroup
+	waitFor := func(cc *base.ClusterContext, serviceName string, err error) {
+		defer wg.Done()
+		_, err = k8s.WaitForSkupperServiceToBeCreatedAndReadyToUse(cc.Namespace, cc.VanClient.KubeClient, serviceName)
+	}
 
-	_, err = k8s.WaitForSkupperServiceToBeCreatedAndReadyToUse(pub1Cluster.Namespace, pub1Cluster.VanClient.KubeClient, "reviews")
-	assert.Assert(t, err)
+	var detailsError, reviewsError, ratingsError error
+	wg.Add(3)
+	go waitFor(pub1Cluster, "details", detailsError)
+	go waitFor(pub1Cluster, "reviews", reviewsError)
+	go waitFor(prv1Cluster, "ratings", ratingsError)
+	wg.Wait()
 
-	_, err = k8s.WaitForSkupperServiceToBeCreatedAndReadyToUse(prv1Cluster.Namespace, prv1Cluster.VanClient.KubeClient, "ratings")
-	assert.Assert(t, err)
-
+	assert.Assert(t, detailsError)
+	assert.Assert(t, reviewsError)
+	assert.Assert(t, ratingsError)
 }
 
 func Run(ctx context.Context, t *testing.T, r *base.ClusterTestRunnerBase) {
