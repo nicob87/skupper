@@ -67,7 +67,8 @@ func TestBookinfoJob(t *testing.T) {
 	assert.Assert(t, err)
 
 	body := string(_body)
-	assert.Assert(t, strings.Contains(body, "Book Details"), body)
-	assert.Assert(t, strings.Contains(body, "An extremely entertaining play by Shakespeare. The slapstick humour is refreshing!"), body)
-	assert.Assert(t, !strings.Contains(body, "Ratings service is currently unavailable"), body)
+	fmt.Printf("body:\n%s\n", body)
+	assert.Assert(t, strings.Contains(body, "Book Details"))
+	assert.Assert(t, strings.Contains(body, "An extremely entertaining play by Shakespeare. The slapstick humour is refreshing!"))
+	assert.Assert(t, !strings.Contains(body, "Ratings service is currently unavailable"))
 }
