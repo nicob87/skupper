@@ -37,7 +37,7 @@ func NewCmdLinkCreate(newClient cobraFunc, flag string) *cobra.Command {
 			silenceCobra(cmd)
 			siteConfig, err := cli.SiteConfigInspect(context.Background(), nil)
 			if err != nil {
-				return fmt.Errorf("Unable to retrieve site config: ", err.Error())
+				return fmt.Errorf("Unable to retrieve site config: %w", err.Error())
 			}
 			header := ""
 			var secret *corev1.Secret
