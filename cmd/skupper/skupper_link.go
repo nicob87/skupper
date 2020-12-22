@@ -3,14 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	"github.com/spf13/cobra"
-
 	"github.com/skupperproject/skupper/api/types"
+	"github.com/spf13/cobra"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func NewCmdLink() *cobra.Command {
@@ -23,7 +22,6 @@ func NewCmdLink() *cobra.Command {
 
 var connectorCreateOpts types.ConnectorCreateOptions
 
-//deprecated
 func NewCmdLinkCreate(newClient cobraFunc, flag string) *cobra.Command {
 
 	if flag == "" { //hack for backwards compatibility
@@ -39,45 +37,38 @@ func NewCmdLinkCreate(newClient cobraFunc, flag string) *cobra.Command {
 			silenceCobra(cmd)
 			siteConfig, err := cli.SiteConfigInspect(context.Background(), nil)
 			if err != nil {
-				fmt.Println("Unable to retrieve site config: ", err.Error())
-				os.Exit(1)
-			} else if siteConfig == nil || !siteConfig.Spec.SiteControlled {
+				return fmt.Errorf("Unable to retrieve site config: ", err.Error())
+			}
+			header := ""
+			var secret *corev1.Secret
+			if siteConfig == nil || !siteConfig.Spec.SiteControlled {
 				connectorCreateOpts.SkupperNamespace = cli.GetNamespace()
-				secret, err := cli.ConnectorCreateFromFile(context.Background(), args[0], connectorCreateOpts)
-				if err != nil {
-					return fmt.Errorf("Failed to create connection: %w", err)
-				} else {
-					if siteConfig.Spec.IsEdge {
-						fmt.Printf("Skupper configured to connect to %s:%s (name=%s)\n",
-							secret.ObjectMeta.Annotations["edge-host"],
-							secret.ObjectMeta.Annotations["edge-port"],
-							secret.ObjectMeta.Name)
-					} else {
-						fmt.Printf("Skupper configured to connect to %s:%s (name=%s)\n",
-							secret.ObjectMeta.Annotations["inter-router-host"],
-							secret.ObjectMeta.Annotations["inter-router-port"],
-							secret.ObjectMeta.Name)
-					}
-				}
+				header = "Skupper"
+				secret, err = cli.ConnectorCreateFromFile(context.Background(), args[0], connectorCreateOpts)
 			} else {
 				// create the secret, site-controller will do the rest
-				secret, err := cli.ConnectorCreateSecretFromFile(context.Background(), args[0], connectorCreateOpts)
-				if err != nil {
-					return fmt.Errorf("Failed to create connection: %w", err)
-				} else {
-					if siteConfig.Spec.IsEdge {
-						fmt.Printf("Skupper site-controller configured to connect to %s:%s (name=%s)\n",
-							secret.ObjectMeta.Annotations["edge-host"],
-							secret.ObjectMeta.Annotations["edge-port"],
-							secret.ObjectMeta.Name)
-					} else {
-						fmt.Printf("Skupper site-controller configured to connect to %s:%s (name=%s)\n",
-							secret.ObjectMeta.Annotations["inter-router-host"],
-							secret.ObjectMeta.Annotations["inter-router-port"],
-							secret.ObjectMeta.Name)
-					}
-				}
+				header = "Skupper site-controller"
+				secret, err = cli.ConnectorCreateSecretFromFile(context.Background(), args[0], connectorCreateOpts)
 			}
+
+			if err != nil {
+				return fmt.Errorf("Failed to create connection: %w", err)
+			}
+
+			if siteConfig.Spec.IsEdge {
+				fmt.Printf("%s site-controller configured to connect to %s:%s (name=%s)\n",
+					header,
+					secret.ObjectMeta.Annotations["edge-host"],
+					secret.ObjectMeta.Annotations["edge-port"],
+					secret.ObjectMeta.Name)
+			} else {
+				fmt.Printf("%s site-controller configured to connect to %s:%s (name=%s)\n",
+					header,
+					secret.ObjectMeta.Annotations["inter-router-host"],
+					secret.ObjectMeta.Annotations["inter-router-port"],
+					secret.ObjectMeta.Name)
+			}
+
 			return nil
 		},
 	}
@@ -177,5 +168,4 @@ func NewCmdLinkStatus(newClient cobraFunc) *cobra.Command {
 	cmd.Flags().IntVar(&waitFor, "wait", 1, "The number of seconds to wait for connections to become active")
 
 	return cmd
-
 }
