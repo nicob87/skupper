@@ -37,7 +37,7 @@ func NewCmdLinkCreate(newClient cobraFunc, flag string) *cobra.Command {
 			silenceCobra(cmd)
 			siteConfig, err := cli.SiteConfigInspect(context.Background(), nil)
 			if err != nil {
-				return fmt.Errorf("Unable to retrieve site config: %w", err.Error())
+				return fmt.Errorf("Unable to retrieve site config: %w", err)
 			}
 			header := ""
 			var secret *corev1.Secret
@@ -56,13 +56,13 @@ func NewCmdLinkCreate(newClient cobraFunc, flag string) *cobra.Command {
 			}
 
 			if siteConfig.Spec.IsEdge {
-				fmt.Printf("%s site-controller configured to connect to %s:%s (name=%s)\n",
+				fmt.Printf("%s configured to connect to %s:%s (name=%s)\n",
 					header,
 					secret.ObjectMeta.Annotations["edge-host"],
 					secret.ObjectMeta.Annotations["edge-port"],
 					secret.ObjectMeta.Name)
 			} else {
-				fmt.Printf("%s site-controller configured to connect to %s:%s (name=%s)\n",
+				fmt.Printf("%s configured to connect to %s:%s (name=%s)\n",
 					header,
 					secret.ObjectMeta.Annotations["inter-router-host"],
 					secret.ObjectMeta.Annotations["inter-router-port"],
