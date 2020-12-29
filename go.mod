@@ -17,7 +17,7 @@ require (
 	github.com/openshift/api v0.0.0-20200109182645-c3cf38ec5571
 	github.com/openshift/client-go v0.0.0-20200109173103-2763c6378941
 	github.com/pkg/errors v0.8.1 // indirect
-	github.com/prometheus/common v0.4.0
+	github.com/prometheus/common v0.4.1
 	github.com/spf13/cobra v0.0.6
 	github.com/tsenart/vegeta/v12 v12.8.3
 	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553
@@ -25,5 +25,6 @@ require (
 	k8s.io/api v0.17.0
 	k8s.io/apimachinery v0.17.0
 	k8s.io/client-go v0.17.0
+	k8s.io/kubectl v0.17.0
 	k8s.io/utils v0.0.0-20200229041039-0a110f9eb7ab // indirect
 )
