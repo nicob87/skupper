@@ -166,6 +166,7 @@ func NewClient(namespace string, context string, kubeConfigPath string) *client.
 var routerCreateOpts types.SiteConfigSpec
 
 func NewCmdInit(newClient cobraFunc) *cobra.Command {
+	var routerMode string
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Initialise skupper installation",
@@ -177,6 +178,9 @@ installation that can then be connected to other skupper installations`,
 			//TODO: should cli allow init to diff ns?
 			silenceCobra(cmd)
 			ns := cli.GetNamespace()
+			if routerMode == "interior" {
+				routerCreateOpts.IsEdge = false
+			}
 			routerCreateOpts.SkupperNamespace = ns
 			siteConfig, err := cli.SiteConfigInspect(context.Background(), nil)
 			if err != nil {
@@ -199,15 +203,44 @@ installation that can then be connected to other skupper installations`,
 		},
 	}
 	cmd.Flags().StringVarP(&routerCreateOpts.SkupperName, "site-name", "", "", "Provide a specific name for this skupper installation")
-	cmd.Flags().BoolVarP(&routerCreateOpts.IsEdge, "edge", "", false, "Configure as an edge")
-	cmd.Flags().BoolVarP(&routerCreateOpts.EnableController, "enable-proxy-controller", "", true, "Setup the proxy controller as well as the router")
 	cmd.Flags().BoolVarP(&routerCreateOpts.EnableServiceSync, "enable-service-sync", "", true, "Configure proxy controller to particiapte in service sync (not relevant if --enable-proxy-controller is false)")
 	cmd.Flags().BoolVarP(&routerCreateOpts.EnableRouterConsole, "enable-router-console", "", false, "Enable router console")
 	cmd.Flags().BoolVarP(&routerCreateOpts.EnableConsole, "enable-console", "", false, "Enable skupper console")
 	cmd.Flags().StringVarP(&routerCreateOpts.AuthMode, "console-auth", "", "", "Authentication mode for console(s). One of: 'openshift', 'internal', 'unsecured'")
 	cmd.Flags().StringVarP(&routerCreateOpts.User, "console-user", "", "", "Skupper console user. Valid only when --console-auth=internal")
 	cmd.Flags().StringVarP(&routerCreateOpts.Password, "console-password", "", "", "Skupper console user. Valid only when --console-auth=internal")
+
+	// Deprecation section
+	// https://github.com/skupperproject/skupper/issues/366
+
+	// 1) enable-proxy-controller hidden
+	cmd.Flags().BoolVarP(&routerCreateOpts.EnableController, "enable-proxy-controller", "", true, "Setup the proxy controller as well as the router")
+	f := cmd.Flag("enable-proxy-controller")
+	//XXX if it is hidden you will never see the deprecation message
+	f.Deprecated = "This flag is deprecated"
+	//f.Hidden = true
+
+	//2) cluster-local deprecated to --ingress
 	cmd.Flags().BoolVarP(&routerCreateOpts.ClusterLocal, "cluster-local", "", false, "Set up skupper to only accept connections from within the local cluster.")
+	f = cmd.Flag("cluster-local")
+	f.Deprecated = "This flag is deprecated, use --ingress clusterip"
+	//cmd.Flags().StringVarP(&some new variable, "cluster-local", "", false, "Set up skupper to only accept connections from within the local cluster.")
+	// here we can map --ingress  clusterip -> --cluster-local true
+	// here we can map --ingress  [route|loadbalancer] -> --cluster-local false
+	// here we can map --ingress  [none] -> ?
+	// what is --ingress ingress?
+
+	//3) --enable-console deprecated to --console-ingress
+
+	//4) new --enable-router-console this works with the previous one
+
+	//5) --edge deprecated to --router-mode [interior|edge]
+	cmd.Flags().BoolVarP(&routerCreateOpts.IsEdge, "edge", "", false, "Configure as an edge")
+	f = cmd.Flag("edge")
+	f.Deprecated = "This flag is deprecated, use --router-mode [interior|edge]"
+	cmd.Flags().StringVarP(&routerMode, "router-mode", "", "edge", "Skupper router-mode")
+
+	//6) --service-account?
 
 	return cmd
 }
