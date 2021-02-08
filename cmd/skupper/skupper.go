@@ -852,10 +852,19 @@ func init() {
 	cmdVersion := NewCmdVersion(newClient)
 	cmdDebugDump := NewCmdDebugDump(newClient)
 
+	//backwards compatibility commands hidden
+	deprecatedMessage := "please use 'skupper service [bind|unbind]' instead"
+	cmdBind.Hidden = true
+	cmdBind.Deprecated = deprecatedMessage
+	cmdUnbind.Deprecated = deprecatedMessage
+	cmdUnbind.Hidden = true
+
 	// setup subcommands
 	cmdService := NewCmdService()
 	cmdService.AddCommand(cmdCreateService)
 	cmdService.AddCommand(cmdDeleteService)
+	cmdService.AddCommand(NewCmdBind(newClient))
+	cmdService.AddCommand(NewCmdUnbind(newClient))
 
 	cmdDebug := NewCmdDebug()
 	cmdDebug.AddCommand(cmdDebugDump)
